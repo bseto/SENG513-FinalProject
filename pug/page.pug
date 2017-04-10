@@ -1,0 +1,17 @@
+doctype
+html
+	head
+		title "SENG 513 Web Chat"
+		link(rel='stylesheet', href='/style.css')
+		script(src='https://code.jquery.com/jquery-3.1.1.min.js')
+		script(src='/socket.io/socket.io.js')
+		script(src='/js.cookie.js')
+		script(src='/client.js')
+	body
+		#content
+			#messageArea
+				ul#messageList
+			#userArea
+				uL#userList
+		#controls
+			textarea#textField(placeholder='Enter text...')

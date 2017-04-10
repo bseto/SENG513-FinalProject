@@ -1,0 +1,11 @@
+{
+  "name": "SENG513WebChat",
+  "version": "0.0.1",
+  "description": "Multi-user chat room",
+  "dependencies": {
+    "express": "^4.15.2",
+    "pug": "latest",
+    "socket.io": "^1.7.3"
+  },
+  "author": "Sven Zhang"
+}
