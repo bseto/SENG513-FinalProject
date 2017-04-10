@@ -33,7 +33,8 @@ io.sockets.on('connect', function (socket) {
 
         clients.set(socket, {
             username: name,
-            color: color
+            color: color, 
+            namespace: ""
         });
 
         let time = getTimestamp();
@@ -167,6 +168,9 @@ handleServerCommand = function (socket, message) {
     case '/nickcolor':
         handleChangeNickColor(socket, tokens);
         break;
+    case '/join':
+        handleChangeNamespace(socket, tokens);
+        break;
     default:
         console.log("badCommand: " + message);
         socket.emit('serverMessage', {
@@ -225,6 +229,45 @@ handleChangeNickname = function (socket, tokens) {
         }
     }
 };
+
+handleChangeNamespace = function (socket, tokens) {
+    if (tokens.length < 2) {
+        console.log("No chatroom supplied");
+        socket.emit('serverMessage', {
+            timestamp: getTimestamp(),
+            message: "You didn't supply a Chatroom Name!"
+        });
+    } else {
+        let userInfo = clients.get(socket);
+        let oldNamespace = userInfo.namespace;
+        if (/[\W]/.test(tokens[1].slice(0, -1)) || tokens[1].trim().length === 0) {
+            console.log("Bad chatroom change request - bad characters: " + tokens[1]);
+            socket.emit('serverMessage', {
+                timestamp: getTimestamp(),
+                message: "Your chatroom must contain only alphanumeric characters"
+            });
+        } else {
+            let newNamespace = tokens[1].match(/\w+/)[0];
+            userInfo.username = newNamespace;
+            generateUserList();
+
+            socket.emit('serverMessage', {
+                timestamp: getTimestamp(),
+                namespace: userInfo.namespace,
+                message: "Successfully changed chat room to " + userInfo.namespace,
+                userList: currentUsers
+            });
+
+            socket.broadcast.emit('serverMessage', {
+                timestamp: getTimestamp(),
+                message: 'Switched from:<i>' + oldNamespace + '</i> To:<i>' + userInfo.namespace + '</i>',
+                userList: currentUsers
+            });
+            console.log("Changing chatroom from" + oldNamespace + " to " + userInfo.namespace);
+        }
+    }
+}
+
 
 handleChangeNickColor = function (socket, tokens) {
     if (tokens.length < 2) {

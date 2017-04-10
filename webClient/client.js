@@ -57,6 +57,9 @@ $(function () {
         if (data.username) {
             myName = data.username;
         }
+        if (data.namespace) {
+            var socket = io(data.namespace);
+        }
         if (data.userList) {
             $('#userList').empty();
             for ( let user of data.userList ) {
