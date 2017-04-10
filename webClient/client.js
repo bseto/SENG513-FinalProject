@@ -47,6 +47,7 @@ $(function () {
             username: myName,
             userId: socket.id,
             color: myColor,
+            namespace: myNamespace,
             message: $('#textField').val()
         });
         $('#textField').val('');
@@ -84,15 +85,14 @@ $(function () {
             data.username = 'Server';
             data.color = "red";
             $('#messageList').append($('<li>').css('color', "red").html(buildMessageString(data)));
-
-			      if ( $('#messageList').scrollTop() >= ( $('#messageList')[0].scrollHeight - $('#messageList').height() - 100 ) ) {
-				        $('#messageList').scrollTop($('#messageList')[0].scrollHeight);
-			      }
+                if ( $('#messageList').scrollTop() >= ( $('#messageList')[0].scrollHeight - $('#messageList').height() - 100 ) ) {
+                    $('#messageList').scrollTop($('#messageList')[0].scrollHeight);
+                }
 		    }
 		    Cookies.set('profile', {
-			      username: myName,
-			      color: myColor,
-            namespace: myNamespace
-		    });
+                username: myName,
+                color: myColor,
+                namespace: myNamespace
+            });
 	  };
 });
