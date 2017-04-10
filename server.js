@@ -22,6 +22,7 @@ io.sockets.on('connect', function (socket) {
         let newUser = false;
         let name = '';
         let color = '#000000';
+        let namespace = 'default';
 
         if ( !cookie ) {
             newUser = true;
@@ -30,12 +31,15 @@ io.sockets.on('connect', function (socket) {
         } else {
             name = cookie.username;
             color = cookie.color;
+            namespace = cookie.namespace;
+            console.log("Reconnected: Name: " + name + " color: " + color + " namespace: " + namespace);
+            socket.join(namespace);
         }
 
         clients.set(socket, {
             username: name,
-            color: color, 
-            namespace: "default"
+            color: color,
+            namespace: namespace
         });
 
         let time = getTimestamp();
@@ -66,6 +70,7 @@ io.sockets.on('connect', function (socket) {
             timestamp: time,
             message: welcomeString,
             username: name,
+            namespace: namespace,
             userList: currentUsers,
             chatHistory: chatHistory
         });
@@ -258,12 +263,13 @@ handleChangeNamespace = function (socket, tokens) {
             socket.emit('serverMessage', {
                 timestamp: getTimestamp(),
                 message: "Successfully changed chat room to " + userInfo.namespace,
+				        namespace: userInfo.namespace,
                 userList: currentUsers
             });
             socket.leave(oldNamespace);
             socket.join(userInfo.namespace);
 
-            socket.broadcast.emit('serverMessage', {
+            socket.broadcast.to(oldNamespace).emit('serverMessage', {
                 timestamp: getTimestamp(),
                 message: 'Switched from:<i>' + oldNamespace + '</i> To:<i>' + userInfo.namespace + '</i>',
                 userList: currentUsers

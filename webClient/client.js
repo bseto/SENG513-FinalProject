@@ -1,6 +1,7 @@
 var socket = io();
 var myName = "";
 var myColor = '#000000';
+var myNamespace = "";
 
 $(function () {
     if ( Cookies.getJSON('profile') ) {
@@ -58,6 +59,9 @@ $(function () {
         if (data.username) {
             myName = data.username;
         }
+        if (data.namespace) {
+            myNamespace = data.namespace;
+        }
         if (data.userList) {
             $('#userList').empty();
             for ( let user of data.userList ) {
@@ -87,7 +91,8 @@ $(function () {
 		    }
 		    Cookies.set('profile', {
 			      username: myName,
-			      color: myColor
+			      color: myColor,
+            namespace: myNamespace
 		    });
 	  };
 });
