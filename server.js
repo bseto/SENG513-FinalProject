@@ -22,25 +22,31 @@ io.sockets.on('connect', function (socket) {
         let newUser = false;
         let name = '';
         let color = '#000000';
+        let namespace = 'default';
 
         if ( !cookie ) {
             newUser = true;
             name = generateUsername();
+            socket.join("default")
         } else {
             name = cookie.username;
             color = cookie.color;
+            namespace = cookie.namespace;
+            console.log("Reconnected: Name: " + name + " color: " + color + " namespace: " + namespace);
+            socket.join(namespace);
         }
 
         clients.set(socket, {
             username: name,
-            color: color
+            color: color,
+            namespace: namespace
         });
 
         let time = getTimestamp();
 
         generateUserList();
 
-        socket.broadcast.emit('serverMessage', {
+        socket.broadcast.to(namespace).emit('serverMessage', {
             timestamp: time,
             message: '<i>' + name + '</i> has joined the room.',
             userList: currentUsers
@@ -64,6 +70,7 @@ io.sockets.on('connect', function (socket) {
             timestamp: time,
             message: welcomeString,
             username: name,
+            namespace: namespace,
             userList: currentUsers,
             chatHistory: chatHistory
         });
@@ -78,10 +85,13 @@ io.sockets.on('connection', function (socket) {
         if (data.message.startsWith('/')) {
             handleServerCommand(socket, data.message.slice(0, -1));
         } else {
+            let userInfo = clients.get(socket);
             updateHistory(data);
             data.timestamp = getTimestamp();
-            console.log("Broadcasting message: " + data.message.slice(0, -1));
-            io.sockets.emit('message', data);
+            // console.log("Broadcasting message: " + data.message.slice(0, -1));
+            // io.sockets.emit('message', data);
+            console.log("Broadcasting message: in " + userInfo.namespace + ":" + data.message.slice(0, -1));
+            io.in(userInfo.namespace).emit('message', data);
         }
     });
 
@@ -167,6 +177,9 @@ handleServerCommand = function (socket, message) {
     case '/nickcolor':
         handleChangeNickColor(socket, tokens);
         break;
+    case '/join':
+        handleChangeNamespace(socket, tokens);
+        break;
     default:
         console.log("badCommand: " + message);
         socket.emit('serverMessage', {
@@ -216,7 +229,7 @@ handleChangeNickname = function (socket, tokens) {
                 userList: currentUsers
             });
 
-            socket.broadcast.emit('serverMessage', {
+            socket.broadcast.to(userInfo.namespace).emit('serverMessage', {
                 timestamp: getTimestamp(),
                 message: '<i>' + oldName + '</i> is now known as <i>' + userInfo.username + '</i>',
                 userList: currentUsers
@@ -225,6 +238,47 @@ handleChangeNickname = function (socket, tokens) {
         }
     }
 };
+
+handleChangeNamespace = function (socket, tokens) {
+    if (tokens.length < 2) {
+        console.log("No chatroom supplied");
+        socket.emit('serverMessage', {
+            timestamp: getTimestamp(),
+            message: "You didn't supply a Chatroom Name!"
+        });
+    } else {
+        let userInfo = clients.get(socket);
+        let oldNamespace = userInfo.namespace;
+        if (/[\W]/.test(tokens[1].slice(0, -1)) || tokens[1].trim().length === 0) {
+            console.log("Bad chatroom change request - bad characters: " + tokens[1]);
+            socket.emit('serverMessage', {
+                timestamp: getTimestamp(),
+                message: "Your chatroom must contain only alphanumeric characters"
+            });
+        } else {
+            let newNamespace = tokens[1].match(/\w+/)[0];
+            userInfo.namespace = newNamespace;
+            generateUserList();
+
+            socket.emit('serverMessage', {
+                timestamp: getTimestamp(),
+                message: "Successfully changed chat room to " + userInfo.namespace,
+				        namespace: userInfo.namespace,
+                userList: currentUsers
+            });
+            socket.leave(oldNamespace);
+            socket.join(userInfo.namespace);
+
+            socket.broadcast.to(oldNamespace).emit('serverMessage', {
+                timestamp: getTimestamp(),
+                message: 'Switched from:<i>' + oldNamespace + '</i> To:<i>' + userInfo.namespace + '</i>',
+                userList: currentUsers
+            });
+            console.log("Changing chatroom from" + oldNamespace + " to " + userInfo.namespace + "or" + newNamespace);
+        }
+    }
+}
+
 
 handleChangeNickColor = function (socket, tokens) {
     if (tokens.length < 2) {
