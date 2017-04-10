@@ -46,7 +46,7 @@ io.sockets.on('connect', function (socket) {
 
         generateUserList();
 
-        socket.broadcast.emit('serverMessage', {
+        socket.broadcast.to(namespace).emit('serverMessage', {
             timestamp: time,
             message: '<i>' + name + '</i> has joined the room.',
             userList: currentUsers
@@ -229,7 +229,7 @@ handleChangeNickname = function (socket, tokens) {
                 userList: currentUsers
             });
 
-            socket.broadcast.emit('serverMessage', {
+            socket.broadcast.to(userInfo.namespace).emit('serverMessage', {
                 timestamp: getTimestamp(),
                 message: '<i>' + oldName + '</i> is now known as <i>' + userInfo.username + '</i>',
                 userList: currentUsers
