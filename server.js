@@ -26,6 +26,7 @@ io.sockets.on('connect', function (socket) {
         if ( !cookie ) {
             newUser = true;
             name = generateUsername();
+            socket.join("default")
         } else {
             name = cookie.username;
             color = cookie.color;
@@ -34,7 +35,7 @@ io.sockets.on('connect', function (socket) {
         clients.set(socket, {
             username: name,
             color: color, 
-            namespace: " "
+            namespace: "default"
         });
 
         let time = getTimestamp();
