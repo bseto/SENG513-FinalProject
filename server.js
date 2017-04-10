@@ -34,7 +34,7 @@ io.sockets.on('connect', function (socket) {
         clients.set(socket, {
             username: name,
             color: color, 
-            namespace: ""
+            namespace: " "
         });
 
         let time = getTimestamp();
@@ -79,10 +79,13 @@ io.sockets.on('connection', function (socket) {
         if (data.message.startsWith('/')) {
             handleServerCommand(socket, data.message.slice(0, -1));
         } else {
+            let userInfo = clients.get(socket);
             updateHistory(data);
             data.timestamp = getTimestamp();
-            console.log("Broadcasting message: " + data.message.slice(0, -1));
-            io.sockets.emit('message', data);
+            // console.log("Broadcasting message: " + data.message.slice(0, -1));
+            // io.sockets.emit('message', data);
+            console.log("Broadcasting message: in " + userInfo.namespace + ":" + data.message.slice(0, -1));
+            io.in(userInfo.namespace).emit('message', data);
         }
     });
 
@@ -248,22 +251,23 @@ handleChangeNamespace = function (socket, tokens) {
             });
         } else {
             let newNamespace = tokens[1].match(/\w+/)[0];
-            userInfo.username = newNamespace;
+            userInfo.namespace = newNamespace;
             generateUserList();
 
             socket.emit('serverMessage', {
                 timestamp: getTimestamp(),
-                namespace: userInfo.namespace,
                 message: "Successfully changed chat room to " + userInfo.namespace,
                 userList: currentUsers
             });
+            socket.leave(oldNamespace);
+            socket.join(userInfo.namespace);
 
             socket.broadcast.emit('serverMessage', {
                 timestamp: getTimestamp(),
                 message: 'Switched from:<i>' + oldNamespace + '</i> To:<i>' + userInfo.namespace + '</i>',
                 userList: currentUsers
             });
-            console.log("Changing chatroom from" + oldNamespace + " to " + userInfo.namespace);
+            console.log("Changing chatroom from" + oldNamespace + " to " + userInfo.namespace + "or" + newNamespace);
         }
     }
 }

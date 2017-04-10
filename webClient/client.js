@@ -13,6 +13,7 @@ $(function () {
     });
 
     socket.on('message', function (data) {
+        console.log(data);
         $('#messageList').append($('<li>').html(buildMessageString(data)));
 
         if ( $('#messageList').scrollTop() >= ( $('#messageList')[0].scrollHeight - $('#messageList').height() - 100 ) ) {
@@ -56,9 +57,6 @@ $(function () {
         }
         if (data.username) {
             myName = data.username;
-        }
-        if (data.namespace) {
-            var socket = io(data.namespace);
         }
         if (data.userList) {
             $('#userList').empty();
