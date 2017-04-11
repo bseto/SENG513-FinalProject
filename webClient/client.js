@@ -53,6 +53,14 @@ $(function () {
         $('#textField').val('');
     };
 
+    clearChatHistory = function() {
+        $('#messageList').empty();
+    };
+
+    clearUserList = function() {
+        $('#userList').empty();
+    };
+
     handleServerMessage = function (data) {
         if (data.color) {
             myColor = data.color;
@@ -64,12 +72,13 @@ $(function () {
             myNamespace = data.namespace;
         }
         if (data.userList) {
-            $('#userList').empty();
+            clearUserList();
             for ( let user of data.userList ) {
                 $('#userList').append($('<li>').html('<b><font color="' + user.color + '">' + user.username + '</font></b>'));
             }
         }
         if (data.chatHistory) {
+            clearChatHistory();
             for ( let entry of data.chatHistory ) {
                 if ( entry.serverMessage ) {
                     entry.username = 'Server';

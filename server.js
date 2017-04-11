@@ -11,7 +11,7 @@ app.use(express.static(__dirname + '/webClient'));
 
 var map_socketToUsers = new Map();
 var map_namespaceToUserList = new Map();
-var chatHistory = [];
+var chatHistory = new Map();
 
 app.get("/", function (req, res) {
     res.render("page");
@@ -53,7 +53,7 @@ io.sockets.on('connect', function (socket) {
             userList: map_namespaceToUserList.get(namespace)
         });
 
-        updateHistory({
+        updateHistory( namespace, {
             timestamp: time,
             message: '<i>' + name + '</i> has joined the room.',
             serverMessage: true
@@ -73,7 +73,7 @@ io.sockets.on('connect', function (socket) {
             username: name,
             namespace: namespace,
             userList: map_namespaceToUserList.get(namespace),
-            chatHistory: chatHistory
+            chatHistory: chatHistory.get(namespace)
         });
 
         console.log("User connected:" + name);
@@ -87,7 +87,7 @@ io.sockets.on('connection', function (socket) {
             handleServerCommand(socket, data.message.slice(0, -1));
         } else {
             let namespace = data.namespace;
-            updateHistory( data );
+            updateHistory( namespace, data );
             data.timestamp = getTimestamp();
             console.log("Broadcasting message: in " + namespace + ":" + data.message.slice(0, -1));
             io.in( namespace ).emit('message', data);
@@ -113,7 +113,7 @@ io.sockets.on('connection', function (socket) {
             userList: map_namespaceToUserList.get( userInfo.namespace )
         });
 
-        updateHistory({
+        updateHistory( userInfo.namespace, {
             timestamp: time,
             message: '<i>' + userInfo.username + '</i> has left the room.',
             serverMessage: true
@@ -326,18 +326,30 @@ handleChangeNamespace = function (socket, tokens) {
             removeFromUserList( oldNamespace, userInfo2 );
             socket.broadcast.to(oldNamespace).emit('serverMessage', {
                 timestamp: getTimestamp(),
-                message: userInfo.username + " left the room.",
+                message: '<i>' + userInfo.username + '</i> has left the room.',
                 userList: map_namespaceToUserList.get(oldNamespace)
+            });
+
+            updateHistory( oldNamespace, {
+                timestamp: getTimestamp(),
+                message: '<i>' + userInfo.username + '</i> has left the room.',
+                serverMessage: true
             });
 
             // Join new namespace
             socket.join(userInfo.namespace);
             addToUserList( newNamespace, userInfo );
+
+            let history = chatHistory.get(newNamespace);
+            if ( !history )
+                history = [];
+
             socket.emit('serverMessage', {
                 timestamp: getTimestamp(),
-                message: "Successfully changed chat room to " + userInfo.namespace,
-				namespace: userInfo.namespace,
-                userList: map_namespaceToUserList.get(userInfo.namespace)
+                message: "Successfully changed chat room to " + newNamespace,
+				namespace: newNamespace,
+                userList: map_namespaceToUserList.get(newNamespace),
+                chatHistory: history
             });
 
             socket.broadcast.to( newNamespace ).emit('serverMessage', {
@@ -346,11 +358,16 @@ handleChangeNamespace = function (socket, tokens) {
                 userList: map_namespaceToUserList.get( newNamespace )
             });
 
+            updateHistory( newNamespace, {
+                timestamp: getTimestamp(),
+                message: '<i>' + userInfo.username + '</i> has joined the room.',
+                serverMessage: true
+            });
+
             console.log( "Switching rooms: " + userInfo.username + " from " + oldNamespace + " to " + newNamespace );
         }
     }
 }
-
 
 handleChangeNickColor = function (socket, tokens) {
     if (tokens.length < 2) {
@@ -389,11 +406,19 @@ handleChangeNickColor = function (socket, tokens) {
 	  }
 };
 
-updateHistory = function( data ) {
-	  if ( chatHistory.length >= 500 ) {
-		    chatHistory.shift();
-	  }
-	  chatHistory.push(data);
+updateHistory = function( namespace, data ) {
+    let history = chatHistory.get(namespace);
+
+    if ( history )
+    {
+        if ( history.length >= 500 )
+            history.shift();
+        history.push( data );
+    } 
+    else 
+    {
+        chatHistory.set(namespace, [data]);
+    }
 };
 
 console.log("Listening on port " + port);
