@@ -12,7 +12,7 @@ $(function () {
     socket.on('connect', function(data) {
         socket.emit('connectRequest', Cookies.getJSON('profile') );
     });
-
+    
     socket.on('message', function (data) {
         console.log(data);
         $('#messageList').append($('<li>').html(buildMessageString(data)));
