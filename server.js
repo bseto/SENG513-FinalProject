@@ -3,6 +3,7 @@ var app = express();
 var port = process.env.PORT || 3000;
 var charSet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 var io = require('socket.io').listen(app.listen(port));
+var dbmgr = require('./db')
 
 app.set('views', __dirname + '/pug');
 app.set('view engine', "pug");
@@ -75,7 +76,8 @@ io.sockets.on('connect', function (socket) {
             chatHistory: chatHistory
         });
 
-        console.log("User connected:" + name);
+        console.log("Trying to connect to db?");
+        console.log("User connected:" + name + dbmgr.testString());
     });
 });
 
