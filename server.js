@@ -9,9 +9,12 @@ app.set('view engine', "pug");
 app.engine('pug', require('pug').__express);
 app.use(express.static(__dirname + '/webClient'));
 
-var map_socketToUsers = new Map();
+var map_socketIdToUsers = new Map();
 var map_namespaceToUserList = new Map();
 var chatHistory = new Map();
+var ticketQueue = new Map();
+
+var ticketCounter = 0;
 
 app.get("/", function (req, res) {
     res.render("page");
@@ -43,7 +46,7 @@ io.sockets.on('connect', function (socket) {
         };
 
         addToUserList( namespace, userInfo );
-        map_socketToUsers.set( socket, userInfo );
+        map_socketIdToUsers.set( socket.id, userInfo );
 
         let time = getTimestamp();
 
@@ -73,7 +76,8 @@ io.sockets.on('connect', function (socket) {
             username: name,
             namespace: namespace,
             userList: map_namespaceToUserList.get(namespace),
-            chatHistory: chatHistory.get(namespace)
+            chatHistory: chatHistory.get(namespace),
+            queue: getTicketQueue()
         });
 
         console.log("User connected:" + name);
@@ -95,7 +99,7 @@ io.sockets.on('connection', function (socket) {
     });
 
     socket.on('disconnect', function () {
-        let userInfo = map_socketToUsers.get(socket);
+        let userInfo = map_socketIdToUsers.get(socket.id);
         if ( userInfo === undefined ) {
             console.log("Attempted to disconnect a user that was not logged...?");
             return;
@@ -119,6 +123,14 @@ io.sockets.on('connection', function (socket) {
             serverMessage: true
         });
     });
+
+    socket.on('submitTicket', function(data) {
+        handleSubmitTicket( socket, data );
+    });
+
+    socket.on('retrieveTicket', function(data) {
+        handleRetrieveTicket( socket, data );
+    });
 });
 
 getTimestamp = function () {
@@ -136,6 +148,14 @@ getTimestamp = function () {
         ss = '0' + ss;
 
     return hh + ":" + mm + ":" + ss;
+};
+
+reportServerError = function( socket, consoleMsg, clientMsg ) {
+    console.log(consoleMsg);
+    socket.emit('serverMessage', {
+        timestamp: getTimestamp(),
+        message: clientMsg
+    });
 };
 
 generateUsername = function () {
@@ -177,17 +197,6 @@ removeFromUserList = function( namespace, info ) {
     }
 };
 
-updateUserList = function( namespace, info ) {
-    let userInfo = findUserInUserList( info );
-    if ( userInfo === undefined )
-        return;
-
-    userInfo.username = info.username;
-    userInfo.userId = info.socket.id,
-    userInfo.color = info.color,
-    userInfo.namespace = info.namespace
-};
-
 findUserInUserList = function( namespace, userId ) {
     let list = map_namespaceToUserList.get( namespace );
     if ( !list )
@@ -211,45 +220,31 @@ handleServerCommand = function (socket, message) {
     case '/join':
         handleChangeNamespace(socket, tokens);
         break;
+    case '/ticket':
+        handleTicketCommand(socket, tokens);
+        break;
     default:
-        console.log("badCommand: " + message);
-        socket.emit('serverMessage', {
-            timestamp: getTimestamp(),
-            message: "What? I didn't understand that command. <br>Currently supported commands: <br>'/nick' <br>'/nickcolor' <br>'/join'"
-        });
+        reportServerError(socket, "Bad command: " + message, "What? I didn't understand that command. <br>Currently supported commands: <br>'/nick' <br>'/nickcolor' <br>'/join' <br>'/ticket'");
     }
 };
 
 handleChangeNickname = function (socket, tokens) {
     // Check for new usernname
     if (tokens.length < 2) {
-        console.log("No new nickname supplied");
-        socket.emit('serverMessage', {
-            timestamp: getTimestamp(),
-            message: "You didn't supply a new username!"
-        });
+        reportServerError( socket, "Bad nickname change request - no name", "You didn't supply a new username!" );
         return;
     }
 
     // Check for valid characters
     if (/[\W]/.test(tokens[1].slice(0, -1)) || tokens[1].trim().length === 0) {
-        console.log("Bad nickname change request - bad characters: " + tokens[1]);
-        socket.emit('serverMessage', {
-            timestamp: getTimestamp(),
-            message: "Your nickname must contain only alphanumeric characters"
-        });
+        reportServerError( socket, "Bad nickname change request - bad characters: " + tokens[1], "Your nickname must contain only alphanumeric characters" );
         return;
     } 
     
     // Get userInfo from socket-users map
-    let userInfo = map_socketToUsers.get(socket);
+    let userInfo = map_socketIdToUsers.get(socket.id);
     if ( !userInfo ) {
-        console.log( "Bad nickname change request - couldn't retrieve user " + userInfo.username );
-
-        socket.emit('serverMessage', {
-            timestamp: getTimestamp(),
-            message: "Couldn't retrieve your user info!"
-        });
+        reportServerError( socket, "Bad nickname change request - couldn't retrieve user " + userInfo.username, "Couldn't retrieve your user info!" );
         return;
     }
 
@@ -259,11 +254,7 @@ handleChangeNickname = function (socket, tokens) {
     let newName = tokens[1].match(/\w+/)[0];
     for (let user of map_namespaceToUserList.get(userInfo.namespace)) {
         if ( user.username.toUpperCase() === newName.toUpperCase() ) {
-            console.log("Bad nickname change request - duplicate name " + newName);
-            socket.emit('serverMessage', {
-                timestamp: getTimestamp(),
-                message: "Your nickname must be unique!"
-            });
+            reportServerError( socket, "Bad nickname change request - duplicate name" + newName, "Your nickname must be unique!");
             return;
         }
     }
@@ -290,36 +281,24 @@ handleChangeNickname = function (socket, tokens) {
 handleChangeNamespace = function (socket, tokens) {
     // Check for new room name
     if (tokens.length < 2) {
-        console.log("No chatroom supplied");
-        socket.emit('serverMessage', {
-            timestamp: getTimestamp(),
-            message: "You didn't supply a Chatroom Name!"
-        });
+        reportServerError(socket, "Bad chatroom change request - no room", "You didn't supply a Chatroom Name!");
         return;
     } 
 
     // Check for valid characters
     if (/[\W]/.test(tokens[1].slice(0, -1)) || tokens[1].trim().length === 0) {
-        console.log("Bad chatroom change request - bad characters: " + tokens[1]);
-        socket.emit('serverMessage', {
-            timestamp: getTimestamp(),
-            message: "Your chatroom must contain only alphanumeric characters"
-        });
+        reportServerError(socket, "Bad chatroom change request - bad characters: " + tokens[1], "Your chatroom must contain only alphanumeric characters");
         return;
     } 
     
     // Get userInfo from socket-user map
-    let userInfo = map_socketToUsers.get(socket);
+    let userInfo = map_socketIdToUsers.get(socket.id);
     let oldNamespace = userInfo.namespace;
     let newNamespace = tokens[1].match(/\w+/)[0];
 
     // Check for valid room
     if ( oldNamespace.toUpperCase() === newNamespace.toUpperCase() ) {
-        console.log( "Bad chatroom change request - duplicate room: " + newNamespace );
-        socket.emit('serverMessage', {
-            timestamp: getTimestamp(),
-            message: "You are already in that room!"
-        });
+        reportServerError(socket, "Bad chatroom change request - duplicate room: " + newNamespace, "You are already in that room!");
         return;
     }
 
@@ -327,14 +306,9 @@ handleChangeNamespace = function (socket, tokens) {
     let userInfo2 = findUserInUserList( userInfo.namespace, userInfo.userId );
     if ( !userInfo || !userInfo2 ) {
         if ( !userInfo )
-            console.log( "Bad namespace change request - couldn't retrieve user " + userInfo.username + " from socket-user map" );
+            reportServerError(socket, "Bad namespace change request - couldn't retrieve user " + userInfo.username + " from socket-user map", "Couldn't retrieve your user info!");
         if ( !userInfo2 )
-            console.log( "Bad namespace change request - couldn't retrieve user " + userInfo.username + " from userlists map" );
-
-        socket.emit('serverMessage', {
-            timestamp: getTimestamp(),
-            message: "Couldn't retrieve your user info!"
-        })
+            reportServerError(socket, "Bad namespace change request - couldn't retrieve user " + userInfo.username + " from userlists map", "Couldn't retrieve your user info!");
         return;
     }
 
@@ -389,27 +363,19 @@ handleChangeNamespace = function (socket, tokens) {
 handleChangeNickColor = function (socket, tokens) {
     // Check for new color
     if (tokens.length < 2) {
-        console.log("No new colour supplied");
-        socket.emit('serverMessage', {
-            timestamp: getTimestamp(),
-            message: "You didn't supply a new nickcolor!"
-        });
+        reportServerError(socket, "Bad nickcolor change request - no color", "You didn't supply a new nickcolor!");
         return;
     }
 
     // Check for valid characters
     let newColor = tokens[1].match(/(^#[0-9a-fA-F]{6})/g);
     if (!newColor) {
-        console.log("Bad nickcolor change request: " + tokens[1]);
-        socket.emit('serverMessage', {
-            timestamp: getTimestamp(),
-            message: "That's not a color! Use the form '#FFFFFF' to pick a color!"
-        });
+        reportServerError(socket, "Bad nickcolor change request - bad characters: " + tokens[1], "That's not a color! Use the form '#FFFFFF' to pick a color!");
         return;
     }
 
     // Get userInfo from socket-user map
-    let userInfo = map_socketToUsers.get(socket);
+    let userInfo = map_socketIdToUsers.get(socket.id);
 
     // Update userInfo
     userInfo.color = newColor[0];
@@ -431,6 +397,51 @@ handleChangeNickColor = function (socket, tokens) {
     console.log("Setting color for " + userInfo.username + " to " + newColor);
 };
 
+handleTicketCommand = function ( socket, tokens ) {
+    if ( tokens.length < 2) {
+        reportServerError(socket, "Bad ticket command - malformed", "You need to supply more arguments for this command! (/ticket add <title> <desc>, /ticket del <num>, or /ticket all)");
+        return;
+    }
+
+    let mode = tokens[1].toLowerCase();
+    let queue = {};
+    let string = "";
+    switch ( mode ) {
+    case "add":
+        let desc = tokens.length >= 4 ? tokens.slice(3) : []
+        handleSubmitTicket( socket, {
+            title: tokens[2],
+            description: desc
+        });
+        queue = getTicketQueue();
+        for ( let ticket of queue ) {
+            string += "[" + ticket.ticketNo + "/" + ticket.title + "/" + ticket.created + "] "
+        }
+        reportServerError(socket, "Ticket queue retrieval: " + string, string);
+        break;
+    case "del":
+        let idx = parseInt(tokens[2]);
+        handleRetrieveTicket( socket, {
+            ticketNo: idx
+        });
+        queue = getTicketQueue();
+        for ( let ticket of queue ) {
+            string += "[" + ticket.ticketNo + "/" + ticket.title + "/" + ticket.created + "] "
+        }
+        reportServerError(socket, "Ticket queue retrieval: " + string, string);
+        break;
+    case "all":
+        queue = getTicketQueue();
+        for ( let ticket of queue ) {
+            string += "[" + ticket.ticketNo + "/" + ticket.title + "/" + ticket.created + "] "
+        }
+        reportServerError(socket, "Ticket queue retrieval: " + string, string);
+        break;
+    default:
+        reportServerError(socket, "Bad ticket command - bad mode: " + mode, "Valid modes for ticket command are 'add', 'del', and 'all' only!");
+    }
+}
+
 updateHistory = function( namespace, data ) {
     let history = chatHistory.get(namespace);
 
@@ -444,6 +455,58 @@ updateHistory = function( namespace, data ) {
     {
         chatHistory.set(namespace, [data]);
     }
+};
+
+getTicketQueue = function() {
+    let queue = [];
+    for( let [ticketNo, ticket] of ticketQueue ) {
+        queue.push({
+            ticketNo: ticketNo,
+            title: ticket.title,
+            created: ticket.created
+        });
+    }
+    return queue;
+};
+
+handleSubmitTicket = function( socket, data ) {
+    ticketCounter++;
+
+    let ticket = {
+        created: new Date(),
+        userId: socket.id,
+        ticketNo: ticketCounter,
+        title: data.title,
+        description: data.description
+    };
+
+    ticketQueue.set(ticket.ticketNo, ticket);
+
+    io.sockets.emit('queueUpdate', {
+        mode: 'add',
+        ticket: {
+            ticketNo: ticket.ticketNo,
+            title: ticket.title,
+            created: ticket.created
+        }
+    });
+};
+
+handleRetrieveTicket = function( socket, data ) {
+    let ticket = ticketQueue.get(data.ticketNo);
+    if ( !ticket ) {
+        reportServerError( socket, "Invalid ticket retrieval: " + data.ticketNo, "Invalid ticket number - could not retrieve ticket");
+        return;
+    }
+
+    socket.emit('ticketRetrieved', {ticket});
+
+    ticketQueue.delete(data.ticketNo);
+
+    io.sockets.emit('queueUpdate', {
+        mode: 'remove',
+        ticketNo: data.ticketNo
+    });
 };
 
 console.log("Listening on port " + port);
