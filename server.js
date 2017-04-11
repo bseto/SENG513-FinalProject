@@ -77,7 +77,8 @@ io.sockets.on('connect', function (socket) {
         });
 
         console.log("Trying to connect to db?");
-        console.log("User connected:" + name + dbmgr.testString());
+        dbmgr.insertNewUser("test");
+        // console.log("User connected:" + name + dbmgr.testString());
         // console.log("Querying for stuff" + dbmgr.readDb());
     });
 });
