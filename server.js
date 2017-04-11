@@ -235,6 +235,10 @@ handleChangeNickname = function (socket, tokens) {
                 message: "Your nickname must contain only alphanumeric characters"
             });
         } else {
+            // Get userInfo from socket-users map
+            let userInfo = map_socketToUsers.get(socket);
+            let oldName = userInfo.username;
+
             // Check for unqiue name
             let newName = tokens[1].match(/\w+/)[0];
             for (let user of map_namespaceToUserList.get(userInfo.namespace)) {
@@ -247,10 +251,6 @@ handleChangeNickname = function (socket, tokens) {
                     return;
                 }
             }
-
-            // Get userInfo from socket-users map
-            let userInfo = map_socketToUsers.get(socket);
-            let oldName = userInfo.username;
 
             if ( !userInfo ) {
                 console.log( "Bad nickname change request - couldn't retrieve user " + userInfo.username );
