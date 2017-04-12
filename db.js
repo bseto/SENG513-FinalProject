@@ -62,12 +62,39 @@ module.exports = {
             return false;
         }
 
-        return connectDB(function(db) {
-
+        connectDB(function(db) {
+            authenticate(db, username, password, function(doc){
+                if (doc) {
+                    console.log("Here is user details. username and password are correct");
+                    console.log(doc);
+                } else {
+                    console.log("Wrong username or password");
+                }
+            });
         });
 
     }
 };
+
+var authenticate = function(db, username, password, callback) {
+    var cursor = db.collection('users').find( {Username: username, Password: password} );
+    cursor.each(function(err, doc) {
+        if(err) {
+            console.log(err);
+            console.log("False");
+            return callback(false);
+        } else {
+            if (doc) {
+                //If doc exists, it means username and password are correct
+                console.log("Correct");
+                return callback(doc);
+            } else{
+                console.log("False");
+                return callback(false);
+            }
+        }
+    });
+}
 
 var checkDuplicate = function(db, username, callback) {
     var cursor = db.collection('users').find( {Username: username} );
@@ -93,9 +120,7 @@ var authenticaet = function(db, username, password, callback) {
             console.log(err);
             return callback(false);
         }
-
     });
-
 }
 
 
