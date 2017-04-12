@@ -13,7 +13,7 @@ module.exports = {
             //     Employeeid: 2,
             //     EmployeeName: "Byrone"
             // });
-            var cursor = db.collection('test4').find( {} );
+            var cursor = db.collection('users').find( {} );
 
             cursor.each(function(err, doc) {
 
@@ -27,20 +27,21 @@ module.exports = {
     //Type is either 'user' or 'IT'
     //Returns true if username is added
     //Returns false if username is already existing or if there is an error
-    insertNewUser : function(username, type, color) {
+    insertNewUser : function(username, password, type, color) {
         if (!username || !type || !color){
             console.log("insertNewUser: Not all arguments supplied");
             return false;
         } else {
-            console.log(username + " " + type + " " + color);
+            console.log("Inserting: " + username + " " + type + " " + color);
         }
         var available = true;
-        return connectDB(function(db) {
-            return checkDuplicate(db, username, function(available){
+        connectDB(function(db) {
+            checkDuplicate(db, username, function(available){
                 if (available === true) {
                     connectDB(function(db) {
-                        db.collection('test4').insertOne({
+                        db.collection('users').insertOne({
                             Username: username,
+                            Password: password,
                             Type: type,
                             color: color
                         }).catch(function (error) {
@@ -52,13 +53,24 @@ module.exports = {
                     return false;
                 }
             });
+        });
+        return available;
+    },
+    authenticateUser : function(username, password) {
+        if (!username || !password ){
+            console.log("insertNewUser: Not all arguments supplied");
+            return false;
+        }
+
+        return connectDB(function(db) {
 
         });
+
     }
 };
 
 var checkDuplicate = function(db, username, callback) {
-    var cursor = db.collection('test4').find( {Username: username} );
+    var cursor = db.collection('users').find( {Username: username} );
     cursor.each(function(err, doc) {
         if(err) {
             console.log(err);
@@ -73,6 +85,19 @@ var checkDuplicate = function(db, username, callback) {
         }
     });
 }
+
+var authenticaet = function(db, username, password, callback) {
+    var cursor = db.collection('users').find( {Username: username} );
+    return cursor.each(function(err, doc) {
+        if(err) {
+            console.log(err);
+            return callback(false);
+        }
+
+    });
+
+}
+
 
 var connectDB = function(callback) {
     MongoClient.connect("mongodb://localhost:27017/dbstorage", function(err, db) {
