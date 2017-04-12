@@ -1,5 +1,5 @@
 var MongoClient = require('mongodb').MongoClient
- , assert = require('assert');
+, assert = require('assert');
 
 var db_holder;
 
@@ -13,7 +13,7 @@ module.exports = {
             //     Employeeid: 2,
             //     EmployeeName: "Byrone"
             // });
-            var cursor = db.collection('test3').find( {} );
+            var cursor = db.collection('test4').find( {} );
 
             cursor.each(function(err, doc) {
 
@@ -35,44 +35,44 @@ module.exports = {
             console.log(username + " " + type + " " + color);
         }
         var available = true;
-        connectDB(function(db) {
-            console.log("Checking for duplicate names:" + username);
-            var cursor = db.collection('test3').find( {Username: username} );
-            cursor.each(function(err, doc) {
-                if(err) {
-                    console.log(err);
-                    available = false;
+        return connectDB(function(db) {
+            return checkDuplicate(db, username, function(available){
+                if (available === true) {
+                    connectDB(function(db) {
+                        db.collection('test4').insertOne({
+                            Username: username,
+                            Type: type,
+                            color: color
+                        }).catch(function (error) {
+                            console.log(error);
+                        });;
+                    });
+                    return true;
                 } else {
-                    if (doc) {
-                        console.log(doc);
-                        console.log("Already Exists");
-                        available = false;
-                    } else{
-                        console.log("Username is available");
-                    }
+                    return false;
                 }
             });
+
         });
-        //TODO race condition w/o me knowing
-        if (available === true) {
-            console.log("ITS TRUE GUYS?");
-            console.log("inserting " + username + " " + type + " " + color);
-            connectDB(function(db) {
-                db.collection('test3').insertOne({
-                    Username: username,
-                    Type: type,
-                    color: color
-                }).catch(function (error) {
-                    console.log("Something went wrong");
-                    console.log(error);
-                });;
-            });
-            return true;
-        } else {
-            return false;
-        }
     }
 };
+
+var checkDuplicate = function(db, username, callback) {
+    var cursor = db.collection('test4').find( {Username: username} );
+    cursor.each(function(err, doc) {
+        if(err) {
+            console.log(err);
+            return callback(false);
+        } else {
+            if (doc) {
+                //If doc exists, it means username exists in the db
+                return callback(false);
+            } else{
+                return callback(true);
+            }
+        }
+    });
+}
 
 var connectDB = function(callback) {
     MongoClient.connect("mongodb://localhost:27017/dbstorage", function(err, db) {
