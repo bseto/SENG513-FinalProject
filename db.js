@@ -78,7 +78,9 @@ module.exports = {
 
 var authenticate = function(db, username, password, callback) {
     var cursor = db.collection('users').find( {Username: username, Password: password} );
+    var firstElement = 0;
     cursor.each(function(err, doc) {
+        firstElement++;
         if(err) {
             console.log(err);
             console.log("False");
@@ -86,11 +88,15 @@ var authenticate = function(db, username, password, callback) {
         } else {
             if (doc) {
                 //If doc exists, it means username and password are correct
-                console.log("Correct");
-                return callback(doc);
+                if (firstElement === 1){
+                    console.log("Correct");
+                    return callback(doc);
+                }
             } else{
-                console.log("False");
-                return callback(false);
+                if (firstElement === 1){
+                    console.log("False");
+                    return callback(false);
+                }
             }
         }
     });
