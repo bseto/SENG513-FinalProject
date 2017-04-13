@@ -75,11 +75,6 @@ io.sockets.on('connect', function (socket) {
             userList: currentUsers,
             chatHistory: chatHistory
         });
-
-        console.log("Trying to connect to db?");
-        // console.log(dbmgr.insertNewUser("Byrone", "password", "IT", "#FFFFFF"));
-        dbmgr.authenticateUser("Byrone", "password");
-        // console.log("User connected:" + name + dbmgr.testString());
     });
 });
 

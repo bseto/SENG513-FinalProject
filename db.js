@@ -25,11 +25,12 @@ module.exports = {
         return "testString!!";
     },
     //Type is either 'user' or 'IT'
-    //Returns true if username is added
-    //Returns false if username is already existing or if there is an error
-    insertNewUser : function(username, password, type, color) {
+    //callbacks true if username is added
+    //callbacks false if username is already existing or if there is an error
+    insertNewUser : function(username, password, type, color, callback) {
         if (!username || !type || !color){
             console.log("insertNewUser: Not all arguments supplied");
+            callback(false);
             return false;
         } else {
             console.log("Inserting: " + username + " " + type + " " + color);
@@ -43,36 +44,40 @@ module.exports = {
                             Username: username,
                             Password: password,
                             Type: type,
-                            color: color
+                            Color: color
                         }).catch(function (error) {
                             console.log(error);
                         });;
                     });
+                    callback(true);
                     return true;
                 } else {
+                    callback(false);
                     return false;
                 }
             });
         });
         return available;
     },
-    authenticateUser : function(username, password) {
+    //If authenticated, will callback with a "doc" with the properties
+    //{Username, Password, Type, Color}
+    //If not, will callback with false
+    authenticateUser : function(username, password, callback) {
         if (!username || !password ){
             console.log("insertNewUser: Not all arguments supplied");
-            return false;
+            callback(false);
         }
-
         connectDB(function(db) {
             authenticate(db, username, password, function(doc){
                 if (doc) {
                     console.log("Here is user details. username and password are correct");
-                    console.log(doc);
+                    callback(doc);
                 } else {
                     console.log("Wrong username or password");
+                    callback(false);
                 }
             });
         });
-
     }
 };
 
@@ -89,12 +94,10 @@ var authenticate = function(db, username, password, callback) {
             if (doc) {
                 //If doc exists, it means username and password are correct
                 if (firstElement === 1){
-                    console.log("Correct");
                     return callback(doc);
                 }
             } else{
                 if (firstElement === 1){
-                    console.log("False");
                     return callback(false);
                 }
             }
@@ -118,17 +121,6 @@ var checkDuplicate = function(db, username, callback) {
         }
     });
 }
-
-var authenticaet = function(db, username, password, callback) {
-    var cursor = db.collection('users').find( {Username: username} );
-    return cursor.each(function(err, doc) {
-        if(err) {
-            console.log(err);
-            return callback(false);
-        }
-    });
-}
-
 
 var connectDB = function(callback) {
     MongoClient.connect("mongodb://localhost:27017/dbstorage", function(err, db) {
