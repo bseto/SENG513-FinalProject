@@ -18,10 +18,33 @@ var ticketQueue = new Map();
 var ticketCounter = 0;
 
 app.get("/", function (req, res) {
+    res.render("landing");
+});
+
+app.get("/chat", function (req, res) {
     res.render("page");
 });
 
 io.sockets.on('connect', function (socket) {
+    socket.on('login', function(data) {
+        console.log(data);
+        console.log('login');
+        dbmgr.authenticateUser(data.username, data.password, function(doc) {
+            if(!doc) {
+                socket.emit('login-result', false);
+            }
+            else {
+                socket.emit('login-result', true);
+            }
+        });
+    });
+    socket.on('register', function(data) {
+        console.log(data);
+        console.log('register');
+        dbmgr.insertNewUser(data.username, data.password, "user","#FFFFFF", function(doc) {
+            socket.emit('registration-result', doc);
+        });
+    });
     socket.on('connectRequest', function ( cookie ) {
         let newUser = false;
         let name = '';
@@ -70,6 +93,7 @@ io.sockets.on('connect', function (socket) {
         else {
             welcomeString = 'Welcome back, ' + name + ".";
         }
+        dbmgr.insertNewUser
 
         socket.emit('serverMessage', {
             timestamp: time,

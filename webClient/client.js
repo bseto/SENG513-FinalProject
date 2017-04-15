@@ -9,9 +9,7 @@ $(function () {
         myColor = Cookies.getJSON('profile').color;
     }
 
-    socket.on('connect', function(data) {
-        socket.emit('connectRequest', Cookies.getJSON('profile') );
-    });
+    socket.on('connect');
     
     socket.on('message', function (data) {
         console.log(data);
