@@ -4,23 +4,25 @@
 
 In root directory:
 
-  npm install
+npm install
 
 To start server:
 
-  node server.js
+node server.js
 
 To start clients:
 
-  Navigate to http://localhost:3000
+Navigate to http://localhost:3000
 
 ## MongoDB:
 
 Install MongoDB:
 
-  npm install mongodb --save
-  
-  sudo apt-get install monogodb-server
-  
-  mongod --dbpath=./dbstorage --port 27017
-  
+npm install mongodb --save
+
+sudo apt-get install monogodb-server
+
+mkdir dbstorage
+
+mongod --dbpath=./dbstorage --port 27017
+
