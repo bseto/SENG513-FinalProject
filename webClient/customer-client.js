@@ -2,16 +2,18 @@ var socket = io();
 var myName = '';
 var myID = '';
 var myColor = '#000000';
-var myNamespace = "";
+var myRoom = '';
 
 $(function () {
-   if ( Cookies.getJSON('profile') ) {
+    if ( Cookies.getJSON('profile') ) {
         myName = Cookies.getJSON('profile').username;
         myID = Cookies.getJSON('profile').userid;
         myColor = Cookies.getJSON('profile').color;
-    }
+    } else {
+        window.location.href = "http://localhost:3000/";
+    };
 
-    $( "#dialogPane" ).dialog({ autoOpen: false });
+    //$( "#dialogPane" ).dialog({ autoOpen: false });
 
     $( "#AccountSettingsBtn" ).button({
         label: "Account Settings"
@@ -31,20 +33,21 @@ $(function () {
             buttons: {
                 "Confirm Changes": modifyAccountSettings,
                 Cancel: function() {
-                    $( this ).dialog( "close" );
-                    $("#dialogPane").empty();
+                    $( this ).dialog('close');
                 }
             },
             close: function() {
-                $("#dialogPane").empty();
+                $( this ).empty();
+                $( this ).dialog('destroy');
             }
         });
 
-        $( "#dialogPane" ).dialog( "open" );
+        $( "#dialogPane" ).dialog('open');
     });
     $( "#CreateTicketBtn" ).button({
         label: "Create Ticket"
     }).on("click", function() {
+        $("#dialogPane").empty();
         $("#dialogPane").append(createTicketHTML);
 
         $("#dialogPane").dialog({
@@ -56,23 +59,22 @@ $(function () {
             buttons: {
                 "Create a new ticket": onCreateTicketClicked,
                 Cancel: function() {
-                    $( this ).dialog( "close" );
-                    $("#dialogPane").empty();
+                    $( this ).dialog('close');
                 }
             },
             close: function() {
-                $("#dialogPane").empty();
+                $( this ).empty();
+                $( this ).dialog('destroy');
             }
         });
 
-        $( "#dialogPane" ).dialog( "open" );
+        $( "#dialogPane" ).dialog('open');
     });   
     $( "#LogoutBtn" ).button({
         label: "Logout"
     }).on("click", function() {
         $("#dialogPane").empty();
-        $("#dialogPane").append('<p>Are you sure you want to submit this ticket?</p>');
-        
+        $("#dialogPane").append('<p>Are you sure you want to logout?</p>');
         $("#dialogPane").dialog({
             title: "Logout?",
             resizeable: false,
@@ -81,17 +83,21 @@ $(function () {
             modal: true,
             buttons: {
                 "Logout": function() {
-                    $( this ).dialog("close");
                     Cookies.remove('profile');
+                    $( this ).dialog('close');
                     window.location.href = "http://localhost:3000";
                 },
                 Cancel: function() {
-                    $( this ).dialog("close");
+                    $( this ).dialog('close');
                 }
+            },
+            close: function() {
+                $( this ).empty();
+                $( this ).dialog('destroy');
             }
         });
         
-        $( "#dialogPane" ).dialog( "open" );
+        $( "#dialogPane" ).dialog('open');
     });
 
     arrangeButtons = function() {
@@ -133,14 +139,17 @@ $(function () {
             modal: true,
             buttons: {
                 "Submit": function() {
-                    $("#confirmDialog").empty();
-                    $( this ).dialog("close");
+                    $( this ).dialog('close');
                     createTicket( title, description );
                 },
                 Cancel: function() {
                     $("#confirmDialog").empty();
-                    $( this ).dialog("close");
+                    $( this ).dialog('close');
                 }
+            },
+            close: function() {
+                $( this ).empty();
+                $( this ).dialog('destroy');
             }
         });
 
@@ -154,7 +163,7 @@ $(function () {
             description: description
         });
 
-        $("#dialogPane").dialog("close");
+        $("#dialogPane").dialog('close');
         $("#dialogPane").append(chatHTML);
 
         $("#textField").keyup(function (e) {
@@ -164,26 +173,27 @@ $(function () {
         });
 
         $( "#dialogPane" ).dialog({
-            title: "Resolving Ticket",
+            title: "Live Chat",
             autoOpen: false,
-            height: 650,
+            height: 660,
             width: 530,
             modal: true,
             buttons: {
                 Close: function() {
-                    $( this ).dialog( "close" );
-                    $("#dialogPane").empty();
+                    $( this ).dialog('close');
                 }
             },
             open: function() {
                 socket.emit("createChatroom", Cookies.getJSON('profile'));
             },
             close: function() {
-                $("#dialogPane").empty();
+                socket.emit("leaveChatroom", Cookies.getJSON('profile'));
+                $( this ).empty();
+                $( this ).dialog('destroy');
             }
         });
 
-        $( "#dialogPane" ).dialog( "open" );
+        $( "#dialogPane" ).dialog('open');
     };
 
     modifyAccountSettings = function() {
@@ -231,15 +241,42 @@ $(function () {
             color: newColor
         });
 
-        $("#dialogPane").dialog("close");
+        socket.on('update-result', function(result) {
+            $("#resultDialog").empty();
+            let okfunc = function(){};
+            let title = "";
+            if ( result ) {
+                $("#resultDialog").append('<p>Successfully updated user information.</p>');
+                okfunc = function() {
+                    $("#resultDialog").dialog('close');
+                    $("#dialogPane").dialog('close');
+                }
+                title = "Success";
+            } else {
+                $("#resultDialog").append('<p>Couldn\'t update your information, please try again.</p>');
+                okfunc = function() {
+                    $("#resultDialog").dialog('close');
+                }
+                title = "Error";
+            }
+
+            $("#resultDialog").dialog({
+                    title: title,
+                    resizeable: false,
+                    height: "auto",
+                    modal: true,
+                    buttons: {
+                        Ok: okfunc
+                    },
+                    close: function(){
+                        $( this ).empty();
+                        $( this ).dialog('destroy');
+                    }
+                });
+        });
     };
 
-/*    socket.on('connect', function (data) {
-        socket.emit('connectRequest', Cookies.getJSON('profile'));
-    });*/
-    
     socket.on('message', function (data) {
-        console.log(data);
         $('#messageList').append($('<li>').html(buildMessageString(data)));
 
         if ( $('#messageList').scrollTop() >= ( $('#messageList')[0].scrollHeight - $('#messageList').height() - 100 ) ) {
@@ -248,7 +285,11 @@ $(function () {
     });
 
     socket.on('serverMessage', function (data) {
-        //handleServerMessage(data);
+        handleServerMessage(data);
+    });
+
+    socket.on('connect', function(data) {
+        socket.emit('userConnected', Cookies.getJSON('profile'));
     });
 
     buildMessageString = function (data) {
@@ -266,7 +307,7 @@ $(function () {
             username: myName,
             userId: socket.id,
             color: myColor,
-            namespace: myNamespace,
+            room: myRoom,
             message: $('#textField').val()
         });
         $('#textField').val('');
@@ -281,21 +322,19 @@ $(function () {
     };
 
     handleServerMessage = function (data) {
+        console.log("server message: " + JSON.stringify(data) );
+        let dirty = false;
         if (data.color) {
             myColor = data.color;
+            dirty = true;
         }
         if (data.username) {
             myName = data.username;
+            dirty = true;
         }
-        if (data.namespace) {
-            myNamespace = data.namespace;
+        if (data.room) {
+            myRoom = data.room;
         }
-        /*if (data.userList) {
-            clearUserList();
-            for ( let user of data.userList ) {
-                $('#userList').append($('<li>').html('<b><font color="' + user.color + '">' + user.username + '</font></b>'));
-            }
-        }*/
         if (data.chatHistory) {
             clearChatHistory();
             for ( let entry of data.chatHistory ) {
@@ -313,21 +352,24 @@ $(function () {
             data.username = 'Server';
             data.color = "red";
             $('#messageList').append($('<li>').css('color', "red").html(buildMessageString(data)));
-                if ( $('#messageList').scrollTop() >= ( $('#messageList')[0].scrollHeight - $('#messageList').height() - 100 ) ) {
-                    $('#messageList').scrollTop($('#messageList')[0].scrollHeight);
-                }
-		    }
-		    Cookies.set('profile', {
-                username: myName,
-                color: myColor,
-                namespace: myNamespace
+            if ( $('#messageList').scrollTop() >= ( $('#messageList')[0].scrollHeight - $('#messageList').height() - 100 ) ) {
+                $('#messageList').scrollTop($('#messageList')[0].scrollHeight);
+            }
+        }
+        if ( dirty ) {
+            Cookies.set('profile', {
+				username: myName,
+				userid: Cookies.getJSON('profile').userid,
+				type: Cookies.getJSON('profile').type,
+				color: myColor
             });
-	  };
+        }
+    };
 
-      var accountSettingsHTML = '<div id="dialogContent"><form><fieldset><p class="validateTips">Please enter your info.</p><label for="username">Display Name: </label><input type="text" name="username" id="username" class="text ui-widget-content ui-corner-all" size="20" maxlength="15"><br><label for="pwd">Password: </label><input type="password" name="pwd" id="pwd" class="text ui-widget-content ui-corner-all" size="25" maxlength="20"><br><label for="color">Color: </label><br><input type="text" name="color" id="color" class="text ui-widget-content ui-corner-all" size="25" maxlength="7"></br></fieldset></form></div>';
+    var accountSettingsHTML = '<div id="dialogContent"><div id="resultDialog"></div><form><fieldset><p class="validateTips">Please enter your info.</p><label for="username">Display Name: </label><input type="text" name="username" id="username" class="text ui-widget-content ui-corner-all" size="20" maxlength="15"><br><label for="pwd">Password: </label><input type="password" name="pwd" id="pwd" class="text ui-widget-content ui-corner-all" size="25" maxlength="20"><br><label for="color">Color: </label><br><input type="text" name="color" id="color" class="text ui-widget-content ui-corner-all" size="25" maxlength="7"></br></fieldset></form></div>';
 
-      var createTicketHTML = '<div id="dialogContent"><div id="confirmDialog" title="Confirm"></div><p class="validateTips">You must at least provide a title.</p><form><fieldset><label for="ticketName">Title: </label><input type="text" name="ticketName" id="ticketName" placeholder="A descriptive title..." class="text ui-widget-content ui-corner-all" size="25" maxlength="40"><br><label for="description">Description: </label><br><textarea name="description" id="description" placeholder="Please be concise and clear" cols="35" rows="10" maxlength="600" class="ui-widget-content ui-corner-all"/></fieldset></form></div>';
+    var createTicketHTML = '<div id="dialogContent"><div id="confirmDialog" title="Confirm"></div><p class="validateTips">You must at least provide a title.</p><form><fieldset><label for="ticketName">Title: </label><input type="text" name="ticketName" id="ticketName" placeholder="A descriptive title..." class="text ui-widget-content ui-corner-all" size="25" maxlength="40"><br><label for="description">Description: </label><br><textarea name="description" id="description" placeholder="Please be concise and clear" cols="35" rows="10" maxlength="600" class="ui-widget-content ui-corner-all"/></fieldset></form></div>';
 
-      var chatHTML = '<div id="dialogContent" style="height: 100%"><div id="chat-content"><div id="messageArea"><ul id="messageList"></ul></div><div id="chat-controls"><textarea id="textField" placeholder="Enter text..."/></div></div></div>';
+    var chatHTML = '<div id="dialogContent" style="height: 100%"><div id="chat-content"><div id="messageArea"><ul id="messageList"></ul></div><div id="chat-controls"><textarea id="textField" placeholder="Enter text..."/></div></div></div>';
 
 });

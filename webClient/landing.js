@@ -22,7 +22,9 @@ $(function () {
 				window.location.href = "http://localhost:3000/chat";
 			if ( cookie.type == "IT" )
 				window.location.href = "http://localhost:3000/staff";
-		}	
+		}
+
+		socket.emit('userConnected', null);
     });
     socket.on('login-result', function(data) {
     	if(data) {
