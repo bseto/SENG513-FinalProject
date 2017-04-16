@@ -1,0 +1,28 @@
+doctype html
+html
+  head
+    title Custom Login Form Styling
+    link(rel='stylesheet', href='landing_style.css')
+    script(src='https://code.jquery.com/jquery-3.1.1.min.js')
+    script(src='/socket.io/socket.io.js')
+    script(src='/js.cookie.js')
+    script(src='/landing.js')
+  body
+    .container
+      header Welcome to IT CHAT SYSTEM
+      .login-dialog
+        p.field
+          input#login-username(type='text', placeholder='Username')
+        p.field
+          input#login-password(type='password', placeholder='Password')
+        p.submit
+          button(name='submit', onclick='login()') Login
+        p#login-result
+      .register-dialog
+          p.field
+            input#register-username(type='text', placeholder='Username')
+          p.field
+            input#register-password(type='password', placeholder='Password')
+          p.submit
+            button(type='submit', name='submit', onclick='register()') Register
+          p#register-result

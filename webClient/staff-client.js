@@ -118,14 +118,14 @@ $(function () {
     // logout
     
 // ---------------------------------------------------------------------------------------- //
-    
     if ( Cookies.getJSON('profile') ) {
         myName = Cookies.getJSON('profile').username;
         myColor = Cookies.getJSON('profile').color;
     }
 
-    socket.on('connect', function(data) {
-        socket.emit('connectRequest', Cookies.getJSON('profile') );
+
+    socket.on('connect', function (data) {
+        socket.emit('connectRequest', Cookies.getJSON('profile'));
     });
     
     socket.on('message', function (data) {
