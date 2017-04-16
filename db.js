@@ -1,7 +1,7 @@
 var MongoClient = require('mongodb').MongoClient
 var ObjectId = require('mongodb').ObjectID
 
-, assert = require('assert');
+    , assert = require('assert');
 
 var db_holder;
 
@@ -89,17 +89,18 @@ module.exports = {
         }
         connectDB(function(db) {
             db.collection('users').update({
-                _id: new  ObjectId("58ef08a89f91f223887371f8")},{
-                    Username: username,
-                    Password: password,
-                    Color: color
-                }, function(err, result){
-                    if (err){
-                        callback(false);
-                    } else {
-                        callback(true);
-                    }
-                });
+                //_id: new  ObjectId("58ef08a89f91f223887371f8")},{
+                _id: id},{
+                Username: username,
+                Password: password,
+                Color: color
+            }, function(err, result){
+                if (err){
+                    callback(false);
+                } else {
+                    callback(true);
+                }
+            });
         });
     }
 }
