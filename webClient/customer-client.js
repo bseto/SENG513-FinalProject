@@ -12,7 +12,7 @@ $(function () {
     }
 
     $( "#dialogPane" ).dialog({ autoOpen: false });
-    
+
     $( "#AccountSettingsBtn" ).button({
         label: "Account Settings"
     }).on("click", function() {
@@ -144,7 +144,7 @@ $(function () {
             }
         });
 
-    }
+    };
 
     createTicket = function( title, description ) {
         console.log("Creating new ticket...");
@@ -174,6 +174,9 @@ $(function () {
                     $( this ).dialog( "close" );
                     $("#dialogPane").empty();
                 }
+            },
+            open: function() {
+                socket.emit("createChatroom", Cookies.getJSON('profile'));
             },
             close: function() {
                 $("#dialogPane").empty();
@@ -228,7 +231,7 @@ $(function () {
         });
 
         $("#dialogPane").dialog("close");
-    }
+    };
 
     socket.on('connect', function (data) {
         socket.emit('connectRequest', Cookies.getJSON('profile'));
@@ -244,7 +247,7 @@ $(function () {
     });
 
     socket.on('serverMessage', function (data) {
-        handleServerMessage(data);
+        //handleServerMessage(data);
     });
 
     buildMessageString = function (data) {
@@ -277,7 +280,7 @@ $(function () {
     };
 
     handleServerMessage = function (data) {
-        /*if (data.color) {
+        if (data.color) {
             myColor = data.color;
         }
         if (data.username) {
@@ -286,12 +289,12 @@ $(function () {
         if (data.namespace) {
             myNamespace = data.namespace;
         }
-        if (data.userList) {
+        /*if (data.userList) {
             clearUserList();
             for ( let user of data.userList ) {
                 $('#userList').append($('<li>').html('<b><font color="' + user.color + '">' + user.username + '</font></b>'));
             }
-        }
+        }*/
         if (data.chatHistory) {
             clearChatHistory();
             for ( let entry of data.chatHistory ) {
@@ -317,7 +320,7 @@ $(function () {
                 username: myName,
                 color: myColor,
                 namespace: myNamespace
-            });*/
+            });
 	  };
 
       var accountSettingsHTML = '<div id="dialogContent"><form><fieldset><p class="validateTips">Please enter your info.</p><label for="username">Display Name: </label><input type="text" name="username" id="username" class="text ui-widget-content ui-corner-all" size="20" maxlength="15"><br><label for="pwd">Password: </label><input type="password" name="pwd" id="pwd" class="text ui-widget-content ui-corner-all" size="25" maxlength="20"><br><label for="color">Color: </label><br><input type="text" name="color" id="color" class="text ui-widget-content ui-corner-all" size="25" maxlength="7"></br></fieldset></form></div>';
