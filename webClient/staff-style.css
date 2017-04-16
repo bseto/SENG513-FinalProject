@@ -7,29 +7,75 @@ html {
 
 body {
 	margin: 0;
-	padding: 0;
+	padding-right: 0;
 	width: 100%;
 	height: 100%;
-	overflow-y: scroll;
+    background: #ffffff;
+    overflow-y: hidden;
 }
 
 ul {
 	font-family: "Lucida Console", Monospace, Sans-serif;
 	font-size: 14px;
+    list-style-type: none;
+    padding: 0;
 }
 
-#content{
-	width: 100%;
-	height: calc( 100% - 81px );
+#leftContent{
+    width: 20%;
+	height: 101%;
+    display: inline-block;
+    background: #cdd4d8;
+    vertical-align: top;
+    padding-right: 22px;
+}
+
+#rightContent{
+	width: 80%;
+	height: 100%;
 	min-height: 5em;
 	min-width: 500px;
-	background: #add4d8;
+	background: #cdd4d8;
+    position: fixed;
+    display: inline-block;
+    vertical-align: top;
+}
+
+#tabs{
+    position: relative;
+    top: 0px;
+    width: 100%;
+    height: 60%;
+    min-height: calc(300px + 2em);
+    background: #cdd4d8;
+    margin-bottom: -20px;
+    padding-bottom: -20px;
+}
+
+.ui-tabs-panel{
+    height: calc(100% - 3.5em);
+}
+
+.ui-tabs .ui-tabs-panel{
+	padding: 0em;
+    margin-top: -10px;
+    margin-left: -30px;
+}
+
+.ui-tabs .ui-tabs-nav{
+    background: #cdd4d8;
+    border: none;
+}
+
+#chatArea{
+    height: 100%;
+    width: 100%;
 }
 
 #messageArea {
 	display: inline-block;
-	width: calc( 70% - 22px ); 
-	height: calc( 100% - 22px ); 
+	width: calc( 85% - 20px ); 
+	height: calc( 100% - 6.5em ); 
 	border: solid 1px;
 	margin: 10px;
 	background: #ffffff;
@@ -45,12 +91,12 @@ ul {
     bottom: 0px;
 	width: 100%;
 	max-height: 100%;
-	overflow-y: auto;
+	overflow-y: auto; 
 }
 
 #messageList li { 
 	padding: 5px 10px; 
-	word-wrap: break-word; 
+	word-wrap: break-word;
 }
 
 #messageList li:nth-child(odd) { 
@@ -58,20 +104,64 @@ ul {
 	word-wrap: break-word;
 }
 
-#userArea{
-	display: inline-block;
-	width: calc( 30% - 12px ); 
-	height: calc( 100% - 22px ); 
-	border: solid 1px;
-	margin-top: 10px;
-	margin-right: 10px;
-	margin-bottom: 10px;
-	padding: 0px;
+#buttonsArea {
+    width: calc( 15% - 20px); 
+    height: calc( 50% - 6.5em ); 
+    position: fixed;
+    display: inline-block;
+    flex-direction: column;
+    text-align: left;
+    table-layout: fixed;
+}
+
+#searchArea{
+    display: inline-block;
+    height: 40%;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+#iframe{
+    display: inline-block;
+    height: 100%;
+    width: calc( 100% - 43px ); 
+	margin: 10px;
+    margin-top: -5px;
 	background: #ffffff;
 	position: relative;
 }
 
-#userList {
+#queueArea{
+	display: inline-block;
+	width: 100%;
+	height: calc( 85% - 22px ); 
+	border: solid 1px;
+	margin: 10px;
+	background: #ffffff;
+	position: relative;
+}
+
+#logoutButton{
+    display: inline-block;
+    height: 15%;
+    width: 100%;
+    text-align: center;
+    margin-top: -17px;
+    margin-left: 10px;
+}
+
+.button{
+    background-color: #296cf2;
+    border: none;
+    color: white;
+    text-align: center;
+    text-decoration: none;
+    font-size: 15px;
+    white-space: nowrap;
+    position: relative;
+}
+
+#queueList {
 	list-style-position: inside;
 	list-style-type: none; 
 	margin: 0; 
@@ -83,24 +173,22 @@ ul {
 	overflow-y: auto;
 }
 
-#userList li { 
-	padding: 5px 10px; 
+#queueList li { 
+	padding: 5px 20px; word-wrap: break-word;
 }
+#queueList li:nth-child(odd) { background: #eee; word-wrap: break-word;}
 
 #controls {
-	position: fixed;
-	left: 0px;
-	bottom: 0px;
-	width: 100%;
-	min-height: 5em;
-	min-width: 500px;
-	border-top: solid 1px;
-	background: #8596b2;
+	height: 100%;
+	width: calc (100% - 20px);
+	min-height: 3em;
+	min-width: 400px;
 }
 
 #textField {
 	margin: 10px;
-	width: calc( 100% - 26px );
+  margin-top: -10px;
+	width: calc( 100% - 25px );
 	height: 4em;
 	resize: none;
 }
