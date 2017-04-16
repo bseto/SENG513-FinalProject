@@ -34,7 +34,8 @@ io.sockets.on('connect', function (socket) {
                 socket.emit('login-result', false);
             }
             else {
-                socket.emit('login-result', true);
+                socket.emit('login-result', doc);
+                //set cookie
             }
         });
     });
