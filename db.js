@@ -87,10 +87,11 @@ module.exports = {
             callback(false);
             return false;
         }
+        console.log(id, username, password, color);
         connectDB(function(db) {
             db.collection('users').update({
-                //_id: new  ObjectId("58ef08a89f91f223887371f8")},{
-                _id: id},{
+                _id: new  ObjectId(id)},{
+                // _id: id},{
                 Username: username,
                 Password: password,
                 Color: color
