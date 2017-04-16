@@ -117,7 +117,7 @@ io.on('connection', function (socket) {
     socket.on('updateAccountSettings', function(data) {
         console.log("Updating account settings: " + JSON.stringify(data));
 
-        dbmgr.editUser(data.userid, data.username, data.pwd, data.color, function(result) {
+        dbmgr.editUser(data.userid, data.username, data.type, data.pwd, data.color, function(result) {
             socket.emit('update-result', result);
 
             if ( !result )

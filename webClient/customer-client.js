@@ -235,8 +235,9 @@ $(function () {
         socket.emit('updateAccountSettings', {
             userid: myID,
             username: $("#username").val(),
+            type: Cookies.getJSON('profile').type,
             pwd: $("#pwd").val(),
-            color: newColor
+            color: newColor[0]
         });
     };
 
