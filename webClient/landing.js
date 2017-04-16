@@ -29,16 +29,15 @@ $(function () {
 			console.log('Login success with: ' + JSON.stringify(data));
 			Cookies.set('profile', {
 				username: data.Username,
+				userid: data._id,
 				type: data.Type,
 				color: data.Color
 			});
 
-			if ( data.Type == "user" ) {
+			if ( data.Type == "user" )
     			window.location.href = "http://localhost:3000/chat";
-			}
-			if ( data.Type == "IT" ) {
+			if ( data.Type == "IT" )
 				window.location.href = "http://localhost:3000/staff";
-			}
     	}
     	else {
     		console.log('Login Unsuccessful');

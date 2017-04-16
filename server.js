@@ -34,11 +34,11 @@ io.sockets.on('connect', function (socket) {
         console.log('Attempted login: ' + JSON.stringify(data));
         dbmgr.authenticateUser(data.username, data.password, function(doc) {
             if(!doc) {
-                socket.emit('login-result', { stats: false, Type: null });
+                socket.emit('login-result', undefined);
                 console.log("Auth failed: " + JSON.stringify(doc));
             }
             else {
-                socket.emit('login-result', { status: true, Type: doc.Type });
+                socket.emit('login-result', doc);
                 console.log("Auth success: " + JSON.stringify(doc));
             }
         });
@@ -157,6 +157,14 @@ io.sockets.on('connection', function (socket) {
     socket.on('retrieveTicket', function(data) {
         handleRetrieveTicket( socket, data );
     });
+
+    socket.on('updateAccountSettings', function(data) {
+        console.log("Update account settings: " + JSON.stringify(data));
+    });
+
+    socket.on('createChatroom', function(data) {
+        console.log("Create chatroom: " + JSON.stringify(data));
+    })
 });
 
 getTimestamp = function () {
