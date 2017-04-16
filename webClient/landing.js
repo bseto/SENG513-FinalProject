@@ -19,7 +19,13 @@ $(function () {
     });
     socket.on('login-result', function(data) {
     	if(data) {
-    		window.location.href = "http://localhost:3000/chat";
+			console.log('Login success with: ' + JSON.stringify(data));
+			if ( data.Type == "user" ) {
+    			window.location.href = "http://localhost:3000/chat";
+			}
+			if ( data.Type == "IT" ) {
+				window.location.href = "http://localhost:3000/staff";
+			}
     	}
     	else {
     		console.log('Login Unsuccessful');

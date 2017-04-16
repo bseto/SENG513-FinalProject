@@ -3,7 +3,7 @@ var app = express();
 var port = process.env.PORT || 3000;
 var charSet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 var io = require('socket.io').listen(app.listen(port));
-var dbmgr = require('./db')
+var dbmgr = require('./db');
 
 app.set('views', __dirname + '/pug');
 app.set('view engine', "pug");
@@ -22,25 +22,29 @@ app.get("/", function (req, res) {
 });
 
 app.get("/chat", function (req, res) {
-    res.render("page");
+    res.render("customer-page");
 });
+
+app.get("/staff", function (req, res) {
+    res.render("staff-page");
+})
 
 io.sockets.on('connect', function (socket) {
     socket.on('login', function(data) {
-        console.log(data);
-        console.log('login');
+        console.log('Attempted login: ' + JSON.stringify(data));
         dbmgr.authenticateUser(data.username, data.password, function(doc) {
             if(!doc) {
-                socket.emit('login-result', false);
+                socket.emit('login-result', { stats: false, Type: null });
+                console.log("Auth failed: " + JSON.stringify(doc));
             }
             else {
-                socket.emit('login-result', true);
+                socket.emit('login-result', { status: true, Type: doc.Type });
+                console.log("Auth success: " + JSON.stringify(doc));
             }
         });
     });
     socket.on('register', function(data) {
-        console.log(data);
-        console.log('register');
+        console.log('Registering new user: ' + JSON.stringify(data));
         dbmgr.insertNewUser(data.username, data.password, "user","#FFFFFF", function(doc) {
             socket.emit('registration-result', doc);
         });
@@ -48,6 +52,7 @@ io.sockets.on('connect', function (socket) {
     socket.on('connectRequest', function ( cookie ) {
         let newUser = false;
         let name = '';
+        let id = '';
         let color = '#000000';
         let namespace = 'default';
 
@@ -493,6 +498,9 @@ getTicketQueue = function() {
 };
 
 handleSubmitTicket = function( socket, data ) {
+    console.log("Ticket received from: " + socket.id);
+    console.log(JSON.stringify(data));
+
     ticketCounter++;
 
     let ticket = {
