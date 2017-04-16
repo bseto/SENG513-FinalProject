@@ -9,7 +9,7 @@ $(function () {
         myName = Cookies.getJSON('profile').username;
         myID = Cookies.getJSON('profile').userid;
         myColor = Cookies.getJSON('profile').color;
-    }
+    };
 
     $( "#dialogPane" ).dialog({ autoOpen: false });
 
@@ -57,10 +57,10 @@ $(function () {
                 "Create a new ticket": onCreateTicketClicked,
                 Cancel: function() {
                     $( this ).dialog( "close" );
-                    $("#dialogPane").empty();
                 }
             },
             close: function() {
+                $( this ).dialog('destroy');
                 $("#dialogPane").empty();
             }
         });
@@ -140,6 +140,7 @@ $(function () {
                 Cancel: function() {
                     $("#confirmDialog").empty();
                     $( this ).dialog("close");
+                    $( this ).dialog('destroy');
                 }
             }
         });
@@ -164,21 +165,22 @@ $(function () {
         });
 
         $( "#dialogPane" ).dialog({
-            title: "Resolving Ticket",
+            title: "Live Chat",
             autoOpen: false,
-            height: 650,
+            height: 660,
             width: 530,
             modal: true,
             buttons: {
                 Close: function() {
                     $( this ).dialog( "close" );
-                    $("#dialogPane").empty();
                 }
             },
             open: function() {
                 socket.emit("createChatroom", Cookies.getJSON('profile'));
             },
             close: function() {
+                socket.emit("leaveChatroom", Cookies.getJSON('profile'));
+                $( this ).dialog('destroy');
                 $("#dialogPane").empty();
             }
         });
@@ -234,12 +236,7 @@ $(function () {
         $("#dialogPane").dialog("close");
     };
 
-/*    socket.on('connect', function (data) {
-        socket.emit('connectRequest', Cookies.getJSON('profile'));
-    });*/
-    
     socket.on('message', function (data) {
-        console.log(data);
         $('#messageList').append($('<li>').html(buildMessageString(data)));
 
         if ( $('#messageList').scrollTop() >= ( $('#messageList')[0].scrollHeight - $('#messageList').height() - 100 ) ) {
@@ -248,7 +245,7 @@ $(function () {
     });
 
     socket.on('serverMessage', function (data) {
-        //handleServerMessage(data);
+        handleServerMessage(data);
     });
 
     buildMessageString = function (data) {
@@ -290,12 +287,6 @@ $(function () {
         if (data.namespace) {
             myNamespace = data.namespace;
         }
-        /*if (data.userList) {
-            clearUserList();
-            for ( let user of data.userList ) {
-                $('#userList').append($('<li>').html('<b><font color="' + user.color + '">' + user.username + '</font></b>'));
-            }
-        }*/
         if (data.chatHistory) {
             clearChatHistory();
             for ( let entry of data.chatHistory ) {
@@ -317,11 +308,6 @@ $(function () {
                     $('#messageList').scrollTop($('#messageList')[0].scrollHeight);
                 }
 		    }
-		    Cookies.set('profile', {
-                username: myName,
-                color: myColor,
-                namespace: myNamespace
-            });
 	  };
 
       var accountSettingsHTML = '<div id="dialogContent"><form><fieldset><p class="validateTips">Please enter your info.</p><label for="username">Display Name: </label><input type="text" name="username" id="username" class="text ui-widget-content ui-corner-all" size="20" maxlength="15"><br><label for="pwd">Password: </label><input type="password" name="pwd" id="pwd" class="text ui-widget-content ui-corner-all" size="25" maxlength="20"><br><label for="color">Color: </label><br><input type="text" name="color" id="color" class="text ui-widget-content ui-corner-all" size="25" maxlength="7"></br></fieldset></form></div>';

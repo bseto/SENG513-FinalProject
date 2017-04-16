@@ -45,72 +45,13 @@ io.sockets.on('connect', function (socket) {
     });
     socket.on('register', function(data) {
         console.log('Registering new user: ' + JSON.stringify(data));
-        dbmgr.insertNewUser(data.username, data.password, "user","#FFFFFF", function(doc) {
+        dbmgr.insertNewUser(data.username, data.password, "user","#000000", function(doc) {
             socket.emit('registration-result', doc);
-        });
-    });
-    socket.on('connectRequest', function ( cookie ) {
-        let newUser = false;
-        let name = '';
-        let id = '';
-        let color = '#000000';
-        let namespace = 'default';
-
-        if ( !cookie ) {
-            newUser = true;
-            name = generateUsername();
-            socket.join("default")
-        } else {
-            name = cookie.username;
-            color = cookie.color;
-            namespace = cookie.namespace;
-            socket.join(namespace);
-        }
-
-        let userInfo = {
-            username: name,
-            userId: socket.id,
-            color: color,
-            namespace: namespace
-        };
-
-        addToUserList( namespace, userInfo );
-        map_socketIdToUsers.set( socket.id, userInfo );
-
-        let time = getTimestamp();
-
-        socket.to(namespace).emit('serverMessage', {
-            timestamp: time,
-            message: '<i>' + name + '</i> has joined the room.',
-            userList: map_namespaceToUserList.get(namespace)
-        });
-
-        updateHistory( namespace, {
-            timestamp: time,
-            message: '<i>' + name + '</i> has joined the room.',
-            serverMessage: true
-        });
-
-        let welcomeString = '';
-        if ( newUser ) {
-            welcomeString = 'Welcome to the chat! You have been auto-assigned the username: ' + name + ".";
-        }
-        else {
-            welcomeString = 'Welcome back, ' + name + ".";
-        }
-        socket.emit('serverMessage', {
-            timestamp: time,
-            message: welcomeString,
-            username: name,
-            namespace: namespace,
-            userList: map_namespaceToUserList.get(namespace),
-            chatHistory: chatHistory.get(namespace),
-            queue: getTicketQueue()
         });
     });
 });
 
-io.sockets.on('connection', function (socket) {
+io.on('connection', function (socket) {
     socket.on('message', function (data) {
         console.log("Message received: '" + data.message.slice(0, -1) + "' from: " + data.username+ "(" + data.color + ")");
         if (data.message.startsWith('/')) {
@@ -119,7 +60,7 @@ io.sockets.on('connection', function (socket) {
             let namespace = data.namespace;
             updateHistory( namespace, data );
             data.timestamp = getTimestamp();
-            console.log("Broadcasting message: in " + namespace + ":" + data.message.slice(0, -1));
+            console.log("Broadcasting message: in " + namespace + ": " + data.message.slice(0, -1));
             io.in( namespace ).emit('message', data);
         }
     });
@@ -164,7 +105,76 @@ io.sockets.on('connection', function (socket) {
 
     socket.on('createChatroom', function(data) {
         console.log("Create chatroom: " + JSON.stringify(data));
-    })
+        let namespace = data.userid;
+        let userInfo = {
+            username: data.username,
+            socketId: socket.id,
+            color: data.color,
+            type: data.type,
+            namespace: namespace
+        };       
+
+        socket.join( namespace );
+        addToUserList( namespace, userInfo );
+        map_socketIdToUsers.set( socket.id, userInfo );
+
+        let time = getTimestamp();
+
+        socket.to(namespace).emit('serverMessage', {
+            timestamp: time,
+            message: '<i>' + data.username + '</i> has joined the room.',
+            userList: map_namespaceToUserList.get(namespace)
+        });
+        
+        updateHistory( namespace, {
+            timestamp: time,
+            message: '<i>' + data.username + '</i> has joined the room.',
+            serverMessage: true
+        });
+
+        socket.emit('serverMessage', {
+            timestamp: time,
+            message: 'Welcome, ' + data.username + ".",
+            username: data.username,
+            namespace: namespace,
+            chatHistory: chatHistory.get(namespace),
+            queue: getTicketQueue()
+        });
+    });
+
+    socket.on('leaveChatroom', function(data) {
+        let userInfo = map_socketIdToUsers.get(socket.id);
+        if ( userInfo === undefined ) {
+            console.log("Unknown socket disconnected from chatroom: " + socket.id);
+            return;
+        }
+
+        //removeFromUserList( userInfo.namespace, userInfo );
+
+        let time = getTimestamp();
+
+        console.log("User disconnected: " + userInfo.username + " from " + userInfo.namespace);
+
+        socket.to( userInfo.namespace ).emit('serverMessage', {
+            timestamp: time,
+            message: '<i>' + userInfo.username + '</i> has left the room.',
+            userList: map_namespaceToUserList.get( userInfo.namespace )
+        });
+
+        updateHistory( userInfo.namespace, {
+            timestamp: time,
+            message: '<i>' + userInfo.username + '</i> has left the room.',
+            serverMessage: true
+        });
+    });
+
+    socket.on('inviteUser', function(data) {
+        console.log("Inviting other user: " + JSON.stringify(data));
+    });
+
+    socket.on('joinChatroom', function(data) {
+        console.log("Join chatroom: " + JSON.stringify(data));
+    });
 });
 
 getTimestamp = function () {
@@ -231,13 +241,13 @@ removeFromUserList = function( namespace, info ) {
     }
 };
 
-findUserInUserList = function( namespace, userId ) {
+findUserInUserList = function( namespace, socketId ) {
     let list = map_namespaceToUserList.get( namespace );
     if ( !list )
         return undefined;
     
     return list.find( function(client){
-            return client.userId == userId;
+            return client.socketId == socketId;
         });
 };
 
@@ -337,7 +347,7 @@ handleChangeNamespace = function (socket, tokens) {
     }
 
     // Get userInfo from userlists map
-    let userInfo2 = findUserInUserList( userInfo.namespace, userInfo.userId );
+    let userInfo2 = findUserInUserList( userInfo.namespace, userInfo.socketId );
     if ( !userInfo || !userInfo2 ) {
         if ( !userInfo )
             reportServerError(socket, "Bad namespace change request - couldn't retrieve user " + userInfo.username + " from socket-user map", "Couldn't retrieve your user info!");
