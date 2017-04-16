@@ -1,0 +1,22 @@
+doctype
+html
+    head
+        title "Welcome to IT Chat System"
+        link(rel='stylesheet', href='/jquery-ui-1.12.1/jquery-ui.min.css')
+        link(rel='stylesheet', href='/customer-style.css')
+        script(src='https://code.jquery.com/jquery-3.1.1.min.js')
+        script(src='/jquery-ui-1.12.1/jquery-ui.min.js')
+        script(src='/socket.io/socket.io.js')
+        script(src='/js.cookie.js')
+        script(src='/customer-client.js')
+    body
+        #content
+            #dialogPane
+            #buttonPanel
+                #top(class='field')
+                    button#CreateTicketBtn(class="mainButton")
+                #botRight(class='field')
+                    button#LogoutBtn(class="mainButton")
+                #botLeft(class='field')
+                    button#AccountSettingsBtn(class="mainButton")
+                            
