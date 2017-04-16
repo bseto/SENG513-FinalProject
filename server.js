@@ -57,6 +57,12 @@ io.sockets.on('connect', function (socket) {
 
         map_socketIdToUsers.set(socket.id, userinfo);
     });
+    socket.on('retrieveTicketQueue', function(data) {
+        console.log('Ticket queue request: ' + JSON.stringify(data));
+        console.log(getTicketQueue());
+        if ( data.type == "staff" )
+            socket.emit('queueRetrieval', getTicketQueue());
+    });
 });
 
 io.on('connection', function (socket) {

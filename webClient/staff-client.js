@@ -77,11 +77,26 @@ $(function () {
         myColor = Cookies.getJSON('profile').color;
     }
 
-
     socket.on('connect', function (data) {
-        socket.emit('connectRequest', Cookies.getJSON('profile'));
+        socket.emit('userConnected', Cookies.getJSON('profile'));
+        socket.emit('retrieveTicketQueue', Cookies.getJSON('profile'));
     });
     
+    socket.on('queueRetrieval', function(data) {
+        if ( !data )
+            return;
+
+        console.log(data);
+
+        for ( let ticket of data ) {
+            $('#queueList').append($('<li>').html(
+                '<b>Number: </b>' + ticket.ticketNo + '<br>' +
+                '<b>Title: </b>' + ticket.title + '<br>' +
+                '<b>Created: </b>' + ticket.created
+            ));
+        }
+    })
+
     socket.on('message', function (data) {
         console.log(data);
         $('#messageList').append($('<li>').html(buildMessageString(data)));
