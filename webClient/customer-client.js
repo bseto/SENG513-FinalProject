@@ -13,8 +13,6 @@ $(function () {
         window.location.href = "http://localhost:3000/";
     };
 
-    //$( "#dialogPane" ).dialog({ autoOpen: false });
-
     $( "#AccountSettingsBtn" ).button({
         label: "Account Settings"
     }).on("click", function() {
@@ -240,40 +238,6 @@ $(function () {
             pwd: $("#pwd").val(),
             color: newColor
         });
-
-        socket.on('update-result', function(result) {
-            $("#resultDialog").empty();
-            let okfunc = function(){};
-            let title = "";
-            if ( result ) {
-                $("#resultDialog").append('<p>Successfully updated user information.</p>');
-                okfunc = function() {
-                    $("#resultDialog").dialog('close');
-                    $("#dialogPane").dialog('close');
-                }
-                title = "Success";
-            } else {
-                $("#resultDialog").append('<p>Couldn\'t update your information, please try again.</p>');
-                okfunc = function() {
-                    $("#resultDialog").dialog('close');
-                }
-                title = "Error";
-            }
-
-            $("#resultDialog").dialog({
-                    title: title,
-                    resizeable: false,
-                    height: "auto",
-                    modal: true,
-                    buttons: {
-                        Ok: okfunc
-                    },
-                    close: function(){
-                        $( this ).empty();
-                        $( this ).dialog('destroy');
-                    }
-                });
-        });
     };
 
     socket.on('message', function (data) {
@@ -290,6 +254,40 @@ $(function () {
 
     socket.on('connect', function(data) {
         socket.emit('userConnected', Cookies.getJSON('profile'));
+    });
+
+    socket.on('update-result', function(result) {
+        $("#resultDialog").empty();
+        let okfunc = function(){};
+        let title = "";
+        if ( result ) {
+            $("#resultDialog").append('<p>Successfully updated user information.</p>');
+            okfunc = function() {
+                $("#resultDialog").dialog('close');
+                $("#dialogPane").dialog('close');
+            }
+            title = "Success";
+        } else {
+            $("#resultDialog").append('<p>Couldn\'t update your information, please try again.</p>');
+            okfunc = function() {
+                $("#resultDialog").dialog('close');
+            }
+            title = "Error";
+        }
+
+        $("#resultDialog").dialog({
+                title: title,
+                resizeable: false,
+                height: "auto",
+                modal: true,
+                buttons: {
+                    Ok: okfunc
+                },
+                close: function(){
+                    $( this ).empty();
+                    $( this ).dialog('destroy');
+                }
+            });
     });
 
     buildMessageString = function (data) {
@@ -322,7 +320,6 @@ $(function () {
     };
 
     handleServerMessage = function (data) {
-        console.log("server message: " + JSON.stringify(data) );
         let dirty = false;
         if (data.color) {
             myColor = data.color;
