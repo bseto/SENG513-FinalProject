@@ -22,7 +22,7 @@ $(function () {
     }).on("click", function() {
         $("#dialogPane").append(accountSettingsHTML);
 
-        onAccountSettingsClicked();
+        retrieveAccountSettings();
 
         $("#dialogPane").dialog({
             title: "Account Settings",
@@ -31,7 +31,7 @@ $(function () {
             width: 360,
             modal: true,
             buttons: {
-                "Confirm Changes": ,
+                "Confirm Changes": modifyAccountSettings(),
                 Cancel: function() {
                     $( this ).dialog( "close" );
                     $("#dialogPane").empty();
@@ -163,15 +163,16 @@ $(function () {
     };
 
 //{Username, Password, Type, Color}
-    onAccountSettingsClicked = function () {
+    retrieveAccountSettings = function () {
+        console.log("Getting account settings...");
         socket.emit('retrieveAccountInfo', {
             userID: myID
         })
     }
 
-    retrieveAccountSettings = function() {
-        console.log("Getting account settings...");
-    };
+    modifyAccountSettings = function() {
+        console.log("Setting account settings...");
+    }
 
     socket.on('connect', function (data) {
         socket.emit('connectRequest', Cookies.getJSON('profile'));
