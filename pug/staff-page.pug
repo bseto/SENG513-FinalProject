@@ -2,16 +2,29 @@ doctype
 html
 	head
 		title "SENG 513 Web Chat"
+		link(rel='stylesheet', href='/jquery-ui-1.12.1/jquery-ui.min.css')
 		link(rel='stylesheet', href='/staff-style.css')
 		script(src='https://code.jquery.com/jquery-3.1.1.min.js')
+		script(src='/jquery-ui-1.12.1/jquery-ui.min.js')
 		script(src='/socket.io/socket.io.js')
 		script(src='/js.cookie.js')
 		script(src='/staff-client.js')
 	body
-		#content
-			#messageArea
-				ul#messageList
-			#userArea
-				uL#userList
-		#controls
-			textarea#textField(placeholder='Enter text...')
+		#leftContent
+			#queueArea
+				ul#queueList
+			#logoutButton
+				ul(style='text-align: center; list-style-type: none;')
+					li
+						button(class='button', style='padding: 10px 20px; font-size: 14px;', id='account_settings') Account Settings
+					li(style='margin-top: 4%')
+						button(class='button', style='padding: 10px 20px; font-size: 14px;') Logout
+		#rightContent
+			#tabs
+				ul
+			#searchArea
+				#iframe
+					iframe(width='100%', height='100%', src='https://en.wikipedia.org/w/index.php?search=&title=Special%3ASearch&go=Go')
+
+	#dialogTabs(title='Max Ticket Number Reached') You're handling too many tickets! Please resolve or close some tickets before opening new ones.
+	#dialog

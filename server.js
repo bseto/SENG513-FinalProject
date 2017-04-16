@@ -49,7 +49,6 @@ io.sockets.on('connect', function (socket) {
             socket.emit('registration-result', doc);
         });
     });
-
     socket.on('userConnected', function (data) {
         console.log('User connected: ' + JSON.stringify(data));
         let userinfo = null;
