@@ -45,7 +45,7 @@ io.sockets.on('connect', function (socket) {
     });
     socket.on('register', function(data) {
         console.log('Registering new user: ' + JSON.stringify(data));
-        dbmgr.insertNewUser(data.username, data.password, "user","#000000", function(doc) {
+        dbmgr.insertNewUser(data.username, data.password, data.type,"#000000", function(doc) {
             socket.emit('registration-result', doc);
         });
     });
