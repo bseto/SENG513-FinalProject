@@ -17,7 +17,7 @@ var ticketQueue = new Map();
 var ticketCounter = 0;
 
 app.get("/", function (req, res) {
-    res.render("page");
+    res.render("staff-page");
 });
 
 io.sockets.on('connect', function (socket) {
