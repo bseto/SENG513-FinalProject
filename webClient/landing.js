@@ -16,13 +16,13 @@ function register() {
 
 $(function () {
 	socket.on('connect', function(data) {
-		let type = Cookies.getJSON('profile').type;
-		if (type == "user") {
-			window.location.href = "http://localhost:3000/chat";
-		}
-		if (type == "IT" ) {
-			window.location.href = "http://localhost:3000/staff";
-		}
+		let cookie = Cookies.getJSON('profile');
+		if ( cookie ) {
+			if ( cookie.type == "user")
+				window.location.href = "http://localhost:3000/chat";
+			if ( cookie.type == "IT" )
+				window.location.href = "http://localhost:3000/staff";
+		}	
     });
     socket.on('login-result', function(data) {
     	if(data) {
