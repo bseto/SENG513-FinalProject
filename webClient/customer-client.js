@@ -7,7 +7,7 @@ var myNamespace = "";
 $(function () {
    if ( Cookies.getJSON('profile') ) {
         myName = Cookies.getJSON('profile').username;
-        myID = Cookies.getJSON('profile').userID;
+        myID = Cookies.getJSON('profile').userid;
         myColor = Cookies.getJSON('profile').color;
     }
 
@@ -225,6 +225,7 @@ $(function () {
         }
 
         socket.emit('updateAccountSettings', {
+            userid: myID,
             username: $("#username").val(),
             pwd: $("#pwd").val(),
             color: newColor
@@ -233,9 +234,9 @@ $(function () {
         $("#dialogPane").dialog("close");
     };
 
-    socket.on('connect', function (data) {
+/*    socket.on('connect', function (data) {
         socket.emit('connectRequest', Cookies.getJSON('profile'));
-    });
+    });*/
     
     socket.on('message', function (data) {
         console.log(data);

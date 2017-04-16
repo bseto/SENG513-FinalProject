@@ -159,6 +159,14 @@ io.sockets.on('connection', function (socket) {
     socket.on('retrieveTicket', function(data) {
         handleRetrieveTicket( socket, data );
     });
+
+    socket.on('updateAccountSettings', function(data) {
+        console.log("Update account settings: " + JSON.stringify(data));
+    });
+
+    socket.on('createChatroom', function(data) {
+        console.log("Create chatroom: " + JSON.stringify(data));
+    })
 });
 
 getTimestamp = function () {
