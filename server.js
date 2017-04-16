@@ -505,7 +505,7 @@ handleSubmitTicket = function( socket, data ) {
 
     let ticket = {
         created: new Date(),
-        userId: socket.id,
+        socketId: socket.id,
         ticketNo: ticketCounter,
         title: data.title,
         description: data.description
