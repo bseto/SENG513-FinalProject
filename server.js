@@ -100,7 +100,12 @@ io.on('connection', function (socket) {
     });
 
     socket.on('updateAccountSettings', function(data) {
-        console.log("Update account settings: " + JSON.stringify(data));
+        console.log("Updating account settings: " + JSON.stringify(data));
+
+        dbmgr.editUser(data.userid, data.username, data.pwd, data.color, function(doc) {
+            socket.emit('update-result', doc);
+        });
+
     });
 
     socket.on('createChatroom', function(data) {

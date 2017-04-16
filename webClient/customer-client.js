@@ -5,7 +5,7 @@ var myColor = '#000000';
 var myNamespace = "";
 
 $(function () {
-   if ( Cookies.getJSON('profile') ) {
+    if ( Cookies.getJSON('profile') ) {
         myName = Cookies.getJSON('profile').username;
         myID = Cookies.getJSON('profile').userid;
         myColor = Cookies.getJSON('profile').color;
@@ -233,7 +233,42 @@ $(function () {
             color: newColor
         });
 
-        $("#dialogPane").dialog("close");
+        socket.on('update-result', function(result) {
+            if ( result ) {
+                $("#resultDialog").empty();
+                $("#resultDialog").append('<p>Successfully updated user information.</p>');
+                $("#resultDialog").dialog({
+                    title: "Success",
+                    resizeable: false,
+                    height: "auto",
+                    modal: true,
+                    buttons: {
+                        Ok: function() {
+                            $("#resultDialog").dialog("close");
+                            $("#resultDialog").dialog('destroy');
+
+                            $("#dialogPane").dialog("close");
+                            $("#dialogPane").dialog('destroy');
+                        }
+                    }
+                });
+            } else {
+                $("#resultDialog").empty();
+                $("#resultDialog").append('<p>Couldn\'t update your information, please try again.</p>');
+                $("#resultDialog").dialog({
+                    resizeable: false,
+                    height: "auto",
+                    modal: true,
+                    buttons: {
+                        Ok: function() {
+                            $("#resultDialog").dialog("close");
+                            $("#resultDialog").dialog('destroy');
+                            $("#resultDialog").empty();
+                        }
+                    }
+                });
+            }
+        });
     };
 
     socket.on('message', function (data) {
@@ -310,7 +345,7 @@ $(function () {
 		    }
 	  };
 
-      var accountSettingsHTML = '<div id="dialogContent"><form><fieldset><p class="validateTips">Please enter your info.</p><label for="username">Display Name: </label><input type="text" name="username" id="username" class="text ui-widget-content ui-corner-all" size="20" maxlength="15"><br><label for="pwd">Password: </label><input type="password" name="pwd" id="pwd" class="text ui-widget-content ui-corner-all" size="25" maxlength="20"><br><label for="color">Color: </label><br><input type="text" name="color" id="color" class="text ui-widget-content ui-corner-all" size="25" maxlength="7"></br></fieldset></form></div>';
+      var accountSettingsHTML = '<div id="dialogContent"><div id="resultDialog"></div><form><fieldset><p class="validateTips">Please enter your info.</p><label for="username">Display Name: </label><input type="text" name="username" id="username" class="text ui-widget-content ui-corner-all" size="20" maxlength="15"><br><label for="pwd">Password: </label><input type="password" name="pwd" id="pwd" class="text ui-widget-content ui-corner-all" size="25" maxlength="20"><br><label for="color">Color: </label><br><input type="text" name="color" id="color" class="text ui-widget-content ui-corner-all" size="25" maxlength="7"></br></fieldset></form></div>';
 
       var createTicketHTML = '<div id="dialogContent"><div id="confirmDialog" title="Confirm"></div><p class="validateTips">You must at least provide a title.</p><form><fieldset><label for="ticketName">Title: </label><input type="text" name="ticketName" id="ticketName" placeholder="A descriptive title..." class="text ui-widget-content ui-corner-all" size="25" maxlength="40"><br><label for="description">Description: </label><br><textarea name="description" id="description" placeholder="Please be concise and clear" cols="35" rows="10" maxlength="600" class="ui-widget-content ui-corner-all"/></fieldset></form></div>';
 
