@@ -1,4 +1,6 @@
 var MongoClient = require('mongodb').MongoClient
+var ObjectId = require('mongodb').ObjectID
+
 , assert = require('assert');
 
 var db_holder;
@@ -78,8 +80,29 @@ module.exports = {
                 }
             });
         });
+    },
+    editUser : function(id, username, password, color, callback) {
+        if (!id || !username || !password || !color){
+            console.log("insertNewUser: Not all arguments supplied");
+            callback(false);
+            return false;
+        }
+        connectDB(function(db) {
+            db.collection('users').update({
+                _id: new  ObjectId("58ef08a89f91f223887371f8")},{
+                    Username: username,
+                    Password: password,
+                    Color: color
+                }, function(err, result){
+                    if (err){
+                        callback(false);
+                    } else {
+                        callback(true);
+                    }
+                });
+        });
     }
-};
+}
 
 var authenticate = function(db, username, password, callback) {
     var cursor = db.collection('users').find( {Username: username, Password: password} );

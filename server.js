@@ -98,8 +98,6 @@ io.sockets.on('connect', function (socket) {
         else {
             welcomeString = 'Welcome back, ' + name + ".";
         }
-        dbmgr.insertNewUser
-
         socket.emit('serverMessage', {
             timestamp: time,
             message: welcomeString,
