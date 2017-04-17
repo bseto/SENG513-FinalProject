@@ -45,7 +45,7 @@ io.sockets.on('connect', function (socket) {
     });
     socket.on('register', function(data) {
         console.log('Registering new user: ' + JSON.stringify(data));
-        dbmgr.insertNewUser(data.username, data.password, "user","#000000", function(doc) {
+        dbmgr.insertNewUser(data.username, data.password, data.type,"#000000", function(doc) {
             socket.emit('registration-result', doc);
         });
     });
@@ -56,6 +56,12 @@ io.sockets.on('connect', function (socket) {
             userinfo = new userInfo( data.userid, data.username, socket.id, data.color, data.type );
 
         map_socketIdToUsers.set(socket.id, userinfo);
+    });
+    socket.on('retrieveTicketQueue', function(data) {
+        console.log('Ticket queue request: ' + JSON.stringify(data));
+        console.log(getTicketQueue());
+        if ( data.type == "staff" )
+            socket.emit('queueRetrieval', getTicketQueue());
     });
 });
 
@@ -111,7 +117,7 @@ io.on('connection', function (socket) {
     socket.on('updateAccountSettings', function(data) {
         console.log("Updating account settings: " + JSON.stringify(data));
 
-        dbmgr.editUser(data.userid, data.username, data.pwd, data.color, function(result) {
+        dbmgr.editUser(data.userid, data.username, data.type, data.pwd, data.color, function(result) {
             socket.emit('update-result', result);
 
             if ( !result )

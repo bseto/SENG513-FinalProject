@@ -10,8 +10,9 @@ function login() {
 function register() {
 	var username = document.getElementById("register-username").value;
 	var password = document.getElementById("register-password").value;
+	var type = document.getElementById("register-type").value;
 
-	socket.emit('register', {username: username, password: password});		
+	socket.emit('register', {username: username, password: password, type: type});		
 }
 
 $(function () {
@@ -20,7 +21,7 @@ $(function () {
 		if ( cookie ) {
 			if ( cookie.type == "user")
 				window.location.href = "http://localhost:3000/chat";
-			if ( cookie.type == "IT" )
+			if ( cookie.type == "staff" )
 				window.location.href = "http://localhost:3000/staff";
 		}
 
@@ -38,7 +39,7 @@ $(function () {
 
 			if ( data.Type == "user" )
     			window.location.href = "http://localhost:3000/chat";
-			if ( data.Type == "IT" )
+			if ( data.Type == "staff" )
 				window.location.href = "http://localhost:3000/staff";
     	}
     	else {

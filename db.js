@@ -81,18 +81,20 @@ module.exports = {
             });
         });
     },
-    editUser : function(id, username, password, color, callback) {
-        if (!id || !username || !password || !color){
+    editUser : function(id, username, type, password, color, callback) {
+        if (!id || !username || !type || !password || !color){
             console.log("insertNewUser: Not all arguments supplied");
             callback(false);
             return false;
         }
+        console.log(id, username, type, password, color);
         connectDB(function(db) {
             db.collection('users').update({
-                //_id: new  ObjectId("58ef08a89f91f223887371f8")},{
-                _id: id},{
+                _id: new  ObjectId(id)},{
+                // _id: id},{
                 Username: username,
                 Password: password,
+                Type: type,
                 Color: color
             }, function(err, result){
                 if (err){
