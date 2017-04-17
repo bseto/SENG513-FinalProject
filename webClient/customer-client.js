@@ -344,10 +344,6 @@ $(function () {
         $('#messageList').empty();
     };
 
-    clearUserList = function() {
-        $('#userList').empty();
-    };
-
     handleServerMessage = function (data) {
         let dirty = false;
         if (data.color) {

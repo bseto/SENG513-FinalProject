@@ -195,7 +195,7 @@ $(function () {
         }
     });
 
-    socket.on('inviteUser-response', function(data) {
+    socket.on('inviteUserResponse', function(data) {
         let title = '';
         let okfunc = '';
         $("#dialogPane").empty();
@@ -236,7 +236,7 @@ $(function () {
             return;
 
         $("#invitationPane").empty();
-        $("#invitationPane").append('<p>' + data.sender + 'has declined to join your chatroom</p>');
+        $("#invitationPane").append('<p>' + data.sender + ' has declined to join your chatroom</p>');
 
         $("#invitationPane").dialog({
             title: "Invitation Declined",
@@ -295,6 +295,40 @@ $(function () {
 
         $( "#invitationPane" ).dialog('open');
     });    
+
+    socket.on('update-result', function(result) {
+        $("#resultDialog").empty();
+        let okfunc = function(){};
+        let title = "";
+        if ( result ) {
+            $("#resultDialog").append('<p>Successfully updated user information.</p>');
+            okfunc = function() {
+                $("#resultDialog").dialog('close');
+                $("#dialogPane").dialog('close');
+            }
+            title = "Success";
+        } else {
+            $("#resultDialog").append('<p>Couldn\'t update your information, please try again.</p>');
+            okfunc = function() {
+                $("#resultDialog").dialog('close');
+            }
+            title = "Error";
+        }
+
+        $("#resultDialog").dialog({
+                title: title,
+                resizeable: false,
+                height: "auto",
+                modal: true,
+                buttons: {
+                    Ok: okfunc
+                },
+                close: function(){
+                    $( this ).empty();
+                    $( this ).dialog('destroy');
+                }
+            });
+    });
 
     // adding tabs functionality
     selectTicket = function( ticketNo ) {
@@ -374,40 +408,6 @@ $(function () {
             color: newColor[0]
         });
     };
-
-    socket.on('update-result', function(result) {
-        $("#resultDialog").empty();
-        let okfunc = function(){};
-        let title = "";
-        if ( result ) {
-            $("#resultDialog").append('<p>Successfully updated user information.</p>');
-            okfunc = function() {
-                $("#resultDialog").dialog('close');
-                $("#dialogPane").dialog('close');
-            }
-            title = "Success";
-        } else {
-            $("#resultDialog").append('<p>Couldn\'t update your information, please try again.</p>');
-            okfunc = function() {
-                $("#resultDialog").dialog('close');
-            }
-            title = "Error";
-        }
-
-        $("#resultDialog").dialog({
-                title: title,
-                resizeable: false,
-                height: "auto",
-                modal: true,
-                buttons: {
-                    Ok: okfunc
-                },
-                close: function(){
-                    $( this ).empty();
-                    $( this ).dialog('destroy');
-                }
-            });
-    });
 
     buildTicketEntry = function( ticket ) {
         $('#queueList').append($('<li id=tListNo' + ticket.ticketNo + '>').html(
@@ -493,10 +493,6 @@ $(function () {
 
     clearChatHistory = function( ticketNo ) {
         $('#messageList'+ticketNo).empty();
-    };
-
-    clearUserList = function() {
-        $('#userList').empty();
     };
 
     handleServerMessage = function (data) {

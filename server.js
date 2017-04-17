@@ -243,12 +243,12 @@ io.on('connection', function (socket) {
 
             if ( userinfo.username == data.requestedUser ) {
                 socket.to(usersocket).emit('chatroomInvitation', data);
-                socket.emit('inviteUser-response', true);
+                socket.emit('inviteUserResponse', true);
                 return;
             }
         }
 
-        socket.emit('inviteUser-response', false);
+        socket.emit('inviteUserResponse', false);
     });
 
     socket.on('requestInvite', function(data) {
