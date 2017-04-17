@@ -47,10 +47,4 @@ https://www.ubuntu.com/download/desktop
 +
 http://www.psychocats.net/ubuntu/virtualbox
 
-Additionally, you can also run node on Windows.
-
-. Follow these instructions
-+
-http://blog.teamtreehouse.com/install-node-js-npm-windows
-
-Alternatively, just uninstall Windows and install Linux on your computer. :)
+Alternatively, just uninstall Windows and install Linux on your computer :)
