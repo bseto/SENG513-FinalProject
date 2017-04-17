@@ -69,7 +69,9 @@ ul {
 
 #chatArea{
     height: 100%;
-    width: 100%;
+    width: 95%;
+    text-align: left;
+    margin-left: 25px;
 }
 
 #messageArea {

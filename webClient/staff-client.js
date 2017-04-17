@@ -30,6 +30,7 @@ $(function () {
         tabCounter++;            
     }
     
+    // checks if new tab can be created (max 5 at a time)
     function newTab() {
         if (tabsOpen < 5){
             addTab();
@@ -58,14 +59,22 @@ $(function () {
     });
     
     // button handling    
-    // resolve ticket button
+    // resolve ticket button - closes tabs
     $("#tabs").button().on('click', '#resolve_ticket', function() {
-        var panelId = $('span.ui-icon.ui-icon-close').closest("li").remove().attr( "aria-controls" );
-        console.log(panelId);
-        $( "#" + panelId ).remove();
+        var tabID = $(this).parents().eq(5).attr('id');
+        // delete tab
+        $("#resolve_ticket").parents().eq(6).find('li').each(function(){
+            if ($(this).attr('aria-controls') == tabID){
+                console.log($(this).attr('aria-controls'));
+                $(this).remove();
+            }});
+        $("#tabs").tabs( "refresh" );
+        
+        // delete chat area
+        $(this).parents().eq(5).remove();
         tabsOpen--; // max tabs tracker
         tabIndex--; // active tabs tracker
-        $("#tabs").tabs( "refresh" )
+        $("#tabs").tabs( "refresh" );
     });
     
     // invite others button
@@ -126,7 +135,6 @@ $(function () {
                 $( this ).dialog('destroy');
             }
         });
-
         $( "#dialogPane" ).dialog('open');
     });
     
