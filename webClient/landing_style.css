@@ -20,6 +20,7 @@ body {
 	width: 70%;
 }
 .login-dialog {
+	min-height: 260px;
 	border: 1px solid #aaaaaa;
 	margin: 2.5%;
 	background: #ffffff;
@@ -42,6 +43,7 @@ body {
 }
 
 .register-dialog {
+	min-height: 260px;
 	border: 1px solid #aaaaaa;
 	margin: 2.5%;
 	background: #ffffff;
