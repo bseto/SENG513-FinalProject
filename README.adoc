@@ -1,7 +1,12 @@
-= SENG513_Assign3
+= SENG513 Final Project: IT Chat System
 
 NOTE: This guide assumes you are using a Debian based linux distribution.
 If you are using a different distribution, use the appropriate package manager for that distribution.
+
+== Before You Start
+. Install Node.js
++
+. Install MongoDB
 
 == Getting Started
 
@@ -9,7 +14,15 @@ If you are using a different distribution, use the appropriate package manager f
 +
 `npm install`
 +
-. To start server:
+`mkdir dbstorage`
++
+. Run mongodb with dbpath as the dbstorage folder you just made
++
+Example: `mongod --dbpath='./dbstorage' --port 27017`
++
+NOTE: You may need to add mongodb to your PATH variable
++
+. Start the webserver with:
 +
 `node server.js`
 +
@@ -17,22 +30,8 @@ If you are using a different distribution, use the appropriate package manager f
 +
 Navigate to http://localhost:3000
 
-== MongoDB:
-
-. Install MongoDB:
-```
-npm install mongodb --save
-
-sudo apt-get install monogodb-server
-
-mkdir dbstorage
-
-mongod --dbpath=./dbstorage --port 27017
-```
-
 == Windows Users:
 
-To run the project on Windows
 
 . Navigate to Virtualbox.org and download VirtualBox
 +
@@ -54,3 +53,4 @@ Additionally, you can also run node on Windows.
 +
 http://blog.teamtreehouse.com/install-node-js-npm-windows
 
+Alternatively, just uninstall Windows and install Linux on your computer. :)
