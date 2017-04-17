@@ -85,7 +85,7 @@ $(function () {
             title: "Search For Support User",
             buttons: {
                 'OK': function () {
-                    socket.emit('inviteUser', $('#username').val().trim());
+                    socket.emit('inviteUser', $('#username').val().trim() );
                 }
             }, height: 300, width: 360,
             close: function() {
@@ -198,20 +198,66 @@ $(function () {
         handleServerMessage(data);
     });
 
-    inviteOtherUser = function() {
+    socket.on('inviteUser-response', function(data) {
+        let title = '';
+        let okfunc = '';
         $("#dialogPane").empty();
+
+        if ( data ) {
+            $("#dialogPane").append('<p>The specified user been notified</p>');
+            title = 'Success';
+            okfunc = function() {
+                $('#dialogPane').dialog('close');
+                $('#dialogInvite').dialog('close');
+            }
+        } else {
+             $("#dialogPane").append('<p>Couldn\'t find the user specified</p>');
+            title = 'Error';
+            okfunc = function() {
+                $('#dialogPane').dialog('close');
+            }
+        }
+
         $("#dialogPane").dialog({
-            title: "Select User",
+            title: title,
             resizeable: false,
-            height: "auto",
             modal: true,
             buttons: {
-                "Confirm": function() {
-                    console.log("DONT DO THIS YET");
-                    socket.emit('inviteUser', null);
+                OK: okfunc
+            },
+            close: function() {
+                $( this ).empty();
+                $( this ).dialog('destroy');
+            }
+        });
+
+        $( "#dialogPane" ).dialog('open');
+    });
+
+    socket.on('chatroomInvitation', function(data) {
+        if ( !data )
+            return;
+
+        $("#invitationPane").empty();
+        $("#invitationPane").append('<p>You have been invited by ' + data + ' to join their chatroom</p>');
+
+        $("#invitationPane").dialog({
+            title: "Invitation Received",
+            resizeable: false,
+            modal: true,
+            buttons: {
+                Join: function() {
+                    socket.emit('joinChatroom', {
+                        response: true,
+                        sender: data
+                    } );
                     $( this ).dialog('close');
                 },
                 Cancel: function() {
+                    socket.emit('joinChatroom', {
+                        response: false,
+                        sender: data
+                    } );
                     $( this ).dialog('close');
                 }
             },
@@ -221,8 +267,35 @@ $(function () {
             }
         });
 
-        $( "#dialogPane" ).dialog('open');
-    };
+        $( "#invitationPane" ).dialog('open');
+    });
+
+    socket.on('joinChatroom-response', function(data){
+        if ( !data )
+            return;
+
+        if ( !data.response ) {
+            $("#invitationPane").empty();
+            $("#invitationPane").append('<p>' + data.sender + 'has declined to join your chatroom</p>');
+
+            $("#invitationPane").dialog({
+                title: "Invitation Declined",
+                resizeable: false,
+                modal: true,
+                buttons: {
+                    OK: function() {
+                        $( this ).dialog('close');
+                    }
+                },
+                close: function() {
+                    $( this ).empty();
+                    $( this ).dialog('destroy');
+                }
+            });
+
+            $( "#invitationPane" ).dialog('open');
+        }
+    })
 
     modifyAccountSettings = function() {
         if ( $("#pwd").val().trim().length < 6) {
