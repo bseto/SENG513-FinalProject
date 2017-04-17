@@ -4,6 +4,8 @@ var myID = '';
 var myColor = '#000000';
 var myRoom = '';
 
+var map_ticketNoToTicket = new Map();
+
 $(function () {
     if ( Cookies.getJSON('profile') ) {
         myName = Cookies.getJSON('profile').username;
@@ -14,55 +16,20 @@ $(function () {
     };
 
     var tabContent = $( "#tab_content" );
-    var tabTemplate = "<li><a href='#{href}'>#{tabLabel}</a> <span class='ui-icon ui-icon-close'>Remove Tab</span></li>";
-    var tabCounter = 1;
+    var tabTemplate = "<li id='#{tabId}'><a href='#{href}'>#{tabLabel}</a> <span class='ui-icon ui-icon-close'>Remove Tab</span></li>";
     var tabIndex = 0;
     
     var tabs = $("#tabs").tabs();
     
-    // close tab using UI icon
+/*    // close tab using UI icon
     $("#tabs").delegate( "span.ui-icon-close", "click", function() {
         var panelId = $( this ).closest( "li" ).remove().attr( "aria-controls" );
         $( "#" + panelId ).remove();
         tabIndex--; // active tabs tracker
         $("#tabs").tabs( "refresh" );
-    });
+    });*/
     
-    // button handling    
-    // resolve ticket button - closes tabs
-    $("#tabs").button().on('click', '#resolve_ticket', function() {
-        var tabID = $(this).parents().eq(5).attr('id');
-        // delete tab
-        $("#resolve_ticket").parents().eq(6).find('li').each(function(){
-            if ($(this).attr('aria-controls') == tabID){
-                console.log($(this).attr('aria-controls'));
-                $(this).remove();
-            }});
-        $("#tabs").tabs( "refresh" );
-        
-        // delete chat area
-        $(this).parents().eq(5).remove();
-        tabIndex--; // active tabs tracker
-        $("#tabs").tabs( "refresh" );
-    });
-    
-    // invite others button
-    $("#tabs").button().on('click', '#invite_others', function() {
-        $( "#dialogInvite" ).append(inviteOthersHTML);
-        $( "#dialogInvite" ).dialog({
-            modal: true,
-            title: "Search For Support User",
-            buttons: {
-                'OK': function () {
-                    socket.emit('inviteUser', $('#username').val().trim() );
-                }
-            }, height: 300, width: 360,
-            close: function() {
-                $( this ).empty();
-                $( this ).dialog('destroy');
-            }});
-    });
-    
+    // button handling
     // view user's chat history (placeholder - not yet implemented)
     $("#tabs").button().on('click', '#user_history', function() {
         $( "#dialogUserHistory" ).dialog({
@@ -168,6 +135,10 @@ $(function () {
         if ( data.mode == "remove" ) {
             $('#tListNo'+data.ticketNo).remove();
         }
+    });
+
+    socket.on('ticketRetrieved', function(data) {
+        map_ticketNoToTicket.set(data.ticketNo, data);
     });
 
     socket.on('message', function (data) {
@@ -284,29 +255,41 @@ $(function () {
 
     // adding tabs functionality
     selectTicket = function( ticketNo ) {
-        if (tabIndex < 5){
-            socket.emit('retrieveTicket', {
-                ticketNo: ticketNo
-            });
-
-            let label = "TicketNo " + ticketNo;
-            let id = "tab-" + tabCounter;
-            let li = $( tabTemplate.replace( /#\{href\}/g, "#" + id ).replace( /#\{tabLabel\}/g, label ) );  
-
-            tabs.find( ".ui-tabs-nav" ).append( li );
-            tabs.append( "<div id='" + id + "' style=\"padding-top: 0px; padding-bottom: 0px;\"><p>" + tabContentHtml + "</p></div>" );
-            tabs.tabs( "refresh" );
-
-            $('#ui-id-'+tabCounter).data( 'ticket', ticketNo );
-            tabCounter++;
-
-            $("#tabs").tabs("option", "active", tabIndex); // set most recent as active tab
-            tabIndex++; // active tabs tracker
-        } else {
+        if (tabIndex >= 5){
             $( function() {
                 $( "#dialogTabs" ).dialog({modal: true});
             } );
+            return;
         }
+
+        socket.emit('retrieveTicket', {
+            ticketNo: ticketNo
+        });
+
+        let label = "TicketNo " + ticketNo;
+        let id = "ticketTabChat" + ticketNo;
+        let li = $( tabTemplate.replace( /#\{tabId\}/g, "ticketTab" + ticketNo ).replace( /#\{href\}/g, "#" + id ).replace( /#\{tabLabel\}/g, label ) );
+        tabs.find( ".ui-tabs-nav" ).append( li );
+        let customizedHTML = tabContentHtml.replace( /\{#ticketNumber\}/g, ticketNo );
+        tabs.append( "<div id='" + id + "' style=\"padding-top: 0px; padding-bottom: 0px;\"><p>" + customizedHTML + "</p></div>" );
+        tabs.tabs( "refresh" );
+
+        $('#resolve_ticket' + ticketNo).button().on('click', function(){
+            resolveTicket( ticketNo );
+        }).data( 'ticket', ticketNo );
+        $('#invite_others' + ticketNo).button().on('click', function() {
+            inviteOthers( ticketNo );
+        }).data( 'ticket', ticketNo );
+        $('#textField' + ticketNo).keyup( function(e) {
+            if (e.keyCode == 13) {	
+                sendMessage( ticketNo );
+            }
+        });
+
+        $('#messageList' + ticketNo)
+
+        $("#tabs").tabs("option", "active", tabIndex); // set most recent as active tab
+        tabIndex++; // active tabs tracker
     }
 
     modifyAccountSettings = function() {
@@ -372,12 +355,6 @@ $(function () {
             });
     });
 
-    $("#textField").keyup(function (e) {
-        if (e.keyCode == 13) {	
-            sendMessage();
-        }
-    });
-
     buildTicketEntry = function( ticket ) {
         $('#queueList').append($('<li id=tListNo' + ticket.ticketNo + '>').html(
             '<div id=tButtonNo' + ticket.ticketNo + '></div>'
@@ -390,6 +367,35 @@ $(function () {
         } );
     }
 
+    // resolve ticket button - closes tabs
+    resolveTicket = function( ticketNo ) {
+        $('#ticketTab'+ticketNo).remove();
+        $('#ticketTabChat'+ticketNo).remove();
+
+        tabIndex--; // active tabs trcker
+        $("#tabs").tabs( "refresh" );
+    };
+
+    // invite others button
+    inviteOthers = function( ticketNo ) {
+        $( "#dialogInvite" ).append(inviteOthersHTML);
+        $( "#dialogInvite" ).dialog({
+            modal: true,
+            title: "Search For Support User",
+            buttons: {
+                OK: function () {
+                    socket.emit('inviteUser', $('#username').val().trim() );
+                },
+                Cancel: function() {
+                    $( this ).dialog('close');
+                }
+            }, height: 300, width: 360,
+            close: function() {
+                $( this ).empty();
+                $( this ).dialog('destroy');
+            }});
+    };
+
     buildMessageString = function (data) {
         let string = '';
         if (data.userId === socket.id || data.username == myName)
@@ -400,12 +406,12 @@ $(function () {
         return string;
     };
 
-    sendMessage = function () {
+    sendMessage = function ( ticketNo ) {
         socket.emit('message', {
             username: myName,
-            userId: socket.id,
+            userId: myID,
             color: myColor,
-            namespace: myRoom,
+            room: myRoom,
             message: $('#textField').val()
         });
         $('#textField').val('');
@@ -477,7 +483,7 @@ $(function () {
         return hh + ":" + mm + ":" + ss;
     };
 
-    var tabContentHtml = '<div id="chatArea"><div id="messageArea"><ul id="messageList"></ul></div><div id="buttonsArea"><div id="buttons" style="display: table; margin-top: 10px; height: 100%;"><ul style="width: 80%; height: 45%; display: table-cell;"><li style="margin-top: 10%;"><button id="user_history" class="button" style="font-size: 14px; padding: 12px 20px; width: 85%;">User History</button></li><li style="margin-top: 23%;"><button id="invite_others" class="button" style="font-size: 14px; padding: 12px 20px; width: 85%;">Invite Others</button></li><li style="margin-top: 23%;"><button id="resolve_ticket" class="button" style="font-size: 14px; padding: 12px 20px; width: 85%;">Resolve Ticket</button></li></ul></div></div><div id="controls"><textarea id="textField" placeholder="Enter text..."></textarea></div></div>';
+    var tabContentHtml = '<div id="chatArea"><div id="messageArea"><ul id="messageList{#ticketNumber}"></ul></div><div id="buttonsArea"><div id="buttons" style="display: table; margin-top: 10px; height: 100%;"><ul style="width: 80%; height: 45%; display: table-cell;"><li style="margin-top: 10%;"><button id="user_history" class="button" style="font-size: 14px; padding: 12px 20px; width: 85%;">User History</button></li><li style="margin-top: 23%;"><button id="invite_others{#ticketNumber}" class="button" style="font-size: 14px; padding: 12px 20px; width: 85%;">Invite Others</button></li><li style="margin-top: 23%;"><button id="resolve_ticket{#ticketNumber}" class="button" style="font-size: 14px; padding: 12px 20px; width: 85%;">Resolve Ticket</button></li></ul></div></div><div id="controls"><textarea class="textField" id="textField{#ticketNumber}" placeholder="Enter text..."></textarea></div></div>';
     var inviteOthersHTML = '<div id="dialogContent"><div id="resultDialog"></div><form><fieldset><p class="validateTips">Invite another staff member to chat</p><label for="username">Staff Username: </label><input type="text" name="username" id="username" class="text ui-widget-content ui-corner-all" size="20" maxlength="15"><br></fieldset></form></div>';
     var accountSettingsHTML = '<div id="dialogContent"><div id="resultDialog"></div><form><fieldset><p class="validateTips">Please enter your info.</p><label for="pwd">Password: </label><input type="password" name="pwd" id="pwd" class="text ui-widget-content ui-corner-all" size="25" maxlength="20"><br><label for="color">Color: </label><br><input type="text" name="color" id="color" class="text ui-widget-content ui-corner-all" size="25" maxlength="7"></br></fieldset></form></div>';
 });

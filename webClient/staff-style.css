@@ -196,9 +196,9 @@ ul {
 	min-width: 400px;
 }
 
-#textField {
+.textField {
 	margin: 10px;
-  margin-top: -10px;
+	margin-top: -10px;
 	width: calc( 100% - 25px );
 	height: 4em;
 	resize: none;

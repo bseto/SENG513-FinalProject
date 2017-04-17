@@ -106,11 +106,55 @@ io.on('connection', function (socket) {
     });
 
     socket.on('submitTicket', function(data) {
-        handleSubmitTicket( socket, data );
+        let user = map_socketIdToUsers.get(socket.id);
+        if ( !user ) {
+            console.log("Ticket received from unknown user: " + socket.id);
+        }
+        console.log("Ticket received from: " + user.username);
+        console.log(JSON.stringify(data.title));
+
+        ticketCounter++;
+
+        let ticket = {
+            created: new Date(),
+            room: user.userId,
+            ticketNo: ticketCounter,
+            title: data.title,
+            description: data.description
+        };
+
+        ticketQueue.set(ticket.ticketNo, ticket);
+
+        io.sockets.emit('queueUpdate', {
+            mode: 'add',
+            ticket: {
+                ticketNo: ticket.ticketNo,
+                title: ticket.title,
+                created: ticket.created
+            }
+        });
     });
 
     socket.on('retrieveTicket', function(data) {
-        handleRetrieveTicket( socket, data );
+        console.log("Ticket selected by: " + socket.id);
+        console.log(JSON.stringify(data));
+
+        let ticket = ticketQueue.get(data.ticketNo);
+        if ( !ticket ) {
+            reportServerError( socket, "Invalid ticket retrieval: " + data.ticketNo, "Invalid ticket number - could not retrieve ticket");
+            return;
+        }
+
+        socket.join(ticket.room);
+
+        socket.emit('ticketRetrieved', ticket);
+
+        ticketQueue.delete(data.ticketNo);
+
+        io.sockets.emit('queueUpdate', {
+            mode: 'remove',
+            ticketNo: data.ticketNo
+        });
     });
 
     socket.on('updateAccountSettings', function(data) {
@@ -315,11 +359,8 @@ handleServerCommand = function (socket, message) {
     case '/join':
         handleChangeNamespace(socket, tokens);
         break;
-    case '/ticket':
-        handleTicketCommand(socket, tokens);
-        break;
     default:
-        reportServerError(socket, "Bad command: " + message, "What? I didn't understand that command. <br>Currently supported commands: <br>'/nick' <br>'/nickcolor' <br>'/join' <br>'/ticket'");
+        reportServerError(socket, "Bad command: " + message, "What? I didn't understand that command. <br>Currently supported commands: <br>'/nick' <br>'/nickcolor' <br>'/join'");
     }
 };
 
@@ -494,51 +535,6 @@ handleChangeNickColor = function (socket, tokens) {
     console.log("Setting color for " + userinfo.username + " to " + newColor);
 };
 
-handleTicketCommand = function ( socket, tokens ) {
-    if ( tokens.length < 2) {
-        reportServerError(socket, "Bad ticket command - malformed", "You need to supply more arguments for this command! (/ticket add <title> <desc>, /ticket del <num>, or /ticket all)");
-        return;
-    }
-
-    let mode = tokens[1].toLowerCase();
-    let queue = {};
-    let string = "";
-    switch ( mode ) {
-    case "add":
-        let desc = tokens.length >= 4 ? tokens.slice(3) : []
-        handleSubmitTicket( socket, {
-            title: tokens[2],
-            description: desc
-        });
-        queue = getTicketQueue();
-        for ( let ticket of queue ) {
-            string += "[" + ticket.ticketNo + "/" + ticket.title + "/" + ticket.created + "] "
-        }
-        reportServerError(socket, "Ticket queue retrieval: " + string, string);
-        break;
-    case "del":
-        let idx = parseInt(tokens[2]);
-        handleRetrieveTicket( socket, {
-            ticketNo: idx
-        });
-        queue = getTicketQueue();
-        for ( let ticket of queue ) {
-            string += "[" + ticket.ticketNo + "/" + ticket.title + "/" + ticket.created + "] "
-        }
-        reportServerError(socket, "Ticket queue retrieval: " + string, string);
-        break;
-    case "all":
-        queue = getTicketQueue();
-        for ( let ticket of queue ) {
-            string += "[" + ticket.ticketNo + "/" + ticket.title + "/" + ticket.created + "] "
-        }
-        reportServerError(socket, "Ticket queue retrieval: " + string, string);
-        break;
-    default:
-        reportServerError(socket, "Bad ticket command - bad mode: " + mode, "Valid modes for ticket command are 'add', 'del', and 'all' only!");
-    }
-}
-
 updateHistory = function( room, data ) {
     let history = chatHistory.get(room);
 
@@ -564,52 +560,6 @@ getTicketQueue = function() {
         });
     }
     return queue;
-};
-
-handleSubmitTicket = function( socket, data ) {
-    console.log("Ticket received from: " + socket.id);
-    console.log(JSON.stringify(data));
-
-    ticketCounter++;
-
-    let ticket = {
-        created: new Date(),
-        socketId: socket.id,
-        ticketNo: ticketCounter,
-        title: data.title,
-        description: data.description
-    };
-
-    ticketQueue.set(ticket.ticketNo, ticket);
-
-    io.sockets.emit('queueUpdate', {
-        mode: 'add',
-        ticket: {
-            ticketNo: ticket.ticketNo,
-            title: ticket.title,
-            created: ticket.created
-        }
-    });
-};
-
-handleRetrieveTicket = function( socket, data ) {
-    console.log("Ticket selected by: " + socket.id);
-    console.log(JSON.stringify(data));
-
-    let ticket = ticketQueue.get(data.ticketNo);
-    if ( !ticket ) {
-        reportServerError( socket, "Invalid ticket retrieval: " + data.ticketNo, "Invalid ticket number - could not retrieve ticket");
-        return;
-    }
-
-    socket.emit('ticketRetrieved', {ticket});
-
-    ticketQueue.delete(data.ticketNo);
-
-    io.sockets.emit('queueUpdate', {
-        mode: 'remove',
-        ticketNo: data.ticketNo
-    });
 };
 
 console.log("Listening on port " + port);
