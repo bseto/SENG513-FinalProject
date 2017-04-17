@@ -1,11 +1,13 @@
 html {
+	font-family: "Arial", Monospace, Sans-serif;
+	font-size: 14px;
 	height: 100%;
 	width: 100%;
 }
 body {
 	height: 100%;
 	width: 100%;
-	background: url(background.jpg) no-repeat center top;
+	background: #add4d8;
 	-webkit-background-size: cover;
 	-moz-background-size: cover;
 	background-size: cover;
@@ -18,14 +20,35 @@ body {
 	width: 70%;
 }
 .login-dialog {
+	border: 1px solid #aaaaaa;
+	margin: 2.5%;
+	background: #ffffff;
+	padding: 2.5%;
+	padding-top: 0px;
 	display: inline;
 	float: left;
-	height: 100%;
-	width: 50%;
+	height: 25%;
+	width: auto;
 }
+
+.submit button {
+	font-size: 1em;
+    font: 13.3333px Arial;
+	padding: .4em 1em;
+	margin: 3px;
+	border-radius: 3px;
+	border: 1px solid #c5c5c5;
+    background: #f6f6f6;
+}
+
 .register-dialog {
-	float: left ;
+	border: 1px solid #aaaaaa;
+	margin: 2.5%;
+	background: #ffffff;
+	padding: 2.5%;
+	padding-top: 0px;
 	display: inline;
-	height: 100%;
-	width: 50%;
+	float: left;
+	height: 25%;
+	width: auto;
 }
