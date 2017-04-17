@@ -5,6 +5,7 @@ var myColor = '#000000';
 var myRoom = '';
 
 var map_ticketNoToTicket = new Map();
+var map_roomToTicket = new Map();
 
 $(function () {
     if ( Cookies.getJSON('profile') ) {
@@ -21,7 +22,7 @@ $(function () {
     
     var tabs = $("#tabs").tabs();
     
-/*    // close tab using UI icon
+    /*// close tab using UI icon
     $("#tabs").delegate( "span.ui-icon-close", "click", function() {
         var panelId = $( this ).closest( "li" ).remove().attr( "aria-controls" );
         $( "#" + panelId ).remove();
@@ -139,14 +140,21 @@ $(function () {
 
     socket.on('ticketRetrieved', function(data) {
         map_ticketNoToTicket.set(data.ticketNo, data);
+        map_roomToTicket.set(data.room, data);
     });
 
     socket.on('message', function (data) {
-        console.log(data);
-        $('#messageList').append($('<li>').html(buildMessageString(data)));
+        let ticket = map_roomToTicket.get(data.room);
+        if ( !ticket )
+            return;
 
-        if ( $('#messageList').scrollTop() >= ( $('#messageList')[0].scrollHeight - $('#messageList').height() - 100 ) ) {
-            $('#messageList').scrollTop($('#messageList')[0].scrollHeight);
+        ticketNumber = ticket.ticketNo;
+
+        $('#messageList'+ticketNumber).append($('<li>').html(buildMessageString(data)));
+
+        if ( $('#messageList'+ticketNumber).scrollTop() >= 
+            ( $('#messageList'+ticketNumber)[0].scrollHeight - $('#messageList'+ticketNumber).height() - 100 ) ) {
+                $('#messageList'+ticketNumber).scrollTop($('#messageList'+ticketNumber)[0].scrollHeight);
         }
     });
 
@@ -374,6 +382,10 @@ $(function () {
 
         tabIndex--; // active tabs trcker
         $("#tabs").tabs( "refresh" );
+
+        let ticket = map_ticketNoToTicket.get(ticketNo);
+        map_ticketNoToTicket.delete(ticketNo);
+        map_roomToTicket.delete(ticket.room);
     };
 
     // invite others button
@@ -407,18 +419,19 @@ $(function () {
     };
 
     sendMessage = function ( ticketNo ) {
+        let ticket = map_ticketNoToTicket.get(ticketNo);
+
         socket.emit('message', {
             username: myName,
-            userId: myID,
             color: myColor,
-            room: myRoom,
-            message: $('#textField').val()
+            room: ticket.room,
+            message: $('#textField'+ticketNo).val()
         });
-        $('#textField').val('');
+        $('#textField' + ticketNo).val('');
     };
 
-    clearChatHistory = function() {
-        $('#messageList').empty();
+    clearChatHistory = function( ticketNo ) {
+        $('#messageList'+ticketNo).empty();
     };
 
     clearUserList = function() {
@@ -435,27 +448,6 @@ $(function () {
             myName = data.username;
             dirty = true;
         }
-        if (data.chatHistory) {
-            clearChatHistory();
-            for ( let entry of data.chatHistory ) {
-                if ( entry.serverMessage ) {
-                    entry.username = 'Server';
-                    entry.color = "red";
-                    $('#messageList').append($('<li>').css('color', "red").html(buildMessageString(entry)));
-                } else {
-                    $('#messageList').append($('<li>').html(buildMessageString(entry)));
-                }
-            }
-            $('#messageList').scrollTop($('#messageList')[0].scrollHeight);
-        }
-        if (data.message) {
-            data.username = 'Server';
-            data.color = "red";
-            $('#messageList').append($('<li>').css('color', "red").html(buildMessageString(data)));
-                if ( $('#messageList').scrollTop() >= ( $('#messageList')[0] - $('#messageList').height() - 100 ) ) {
-                    $('#messageList').scrollTop($('#messageList')[0].scrollHeight);
-                }
-		    }
         if ( dirty ) {
             Cookies.set('profile', {
 				username: myName,
@@ -464,6 +456,37 @@ $(function () {
 				color: myColor
             });
         }
+
+        if ( !data.room )
+            return;
+
+        let ticket = map_roomToTicket.get(data.room);
+        if ( !ticket )
+            return;
+        let ticketNumber = ticket.ticketNo;
+
+        if (data.chatHistory) {
+            clearChatHistory( ticketNumber );
+            for ( let entry of data.chatHistory ) {
+                if ( entry.serverMessage ) {
+                    entry.username = 'Server';
+                    entry.color = "red";
+                    $('#messageList'+ticketNumber).append($('<li>').css('color', "red").html(buildMessageString(entry)));
+                } else {
+                    $('#messageList'+ticketNumber).append($('<li>').html(buildMessageString(entry)));
+                }
+            }
+            $('#messageList'+ticketNumber).scrollTop($('#messageList'+ticketNumber)[0].scrollHeight);
+        }
+        if (data.message) {
+            data.username = 'Server';
+            data.color = "red";
+            $('#messageList'+ticketNumber).append($('<li>').css('color', "red").html(buildMessageString(data)));
+                if ( $('#messageList'+ticketNumber).scrollTop() >= ( $('#messageList'+ticketNumber)[0] - $('#messageList'+ticketNumber).height() - 100 ) ) {
+                    $('#messageList'+ticketNumber).scrollTop($('#messageList'+ticketNumber)[0].scrollHeight);
+                }
+		    }
+
     };
 
     formatDate = function (data) {
@@ -483,7 +506,7 @@ $(function () {
         return hh + ":" + mm + ":" + ss;
     };
 
-    var tabContentHtml = '<div id="chatArea"><div id="messageArea"><ul id="messageList{#ticketNumber}"></ul></div><div id="buttonsArea"><div id="buttons" style="display: table; margin-top: 10px; height: 100%;"><ul style="width: 80%; height: 45%; display: table-cell;"><li style="margin-top: 10%;"><button id="user_history" class="button" style="font-size: 14px; padding: 12px 20px; width: 85%;">User History</button></li><li style="margin-top: 23%;"><button id="invite_others{#ticketNumber}" class="button" style="font-size: 14px; padding: 12px 20px; width: 85%;">Invite Others</button></li><li style="margin-top: 23%;"><button id="resolve_ticket{#ticketNumber}" class="button" style="font-size: 14px; padding: 12px 20px; width: 85%;">Resolve Ticket</button></li></ul></div></div><div id="controls"><textarea class="textField" id="textField{#ticketNumber}" placeholder="Enter text..."></textarea></div></div>';
+    var tabContentHtml = '<div id="chatArea"><div id="messageArea"><ul id="messageList{#ticketNumber}" class="messageList"></ul></div><div id="buttonsArea"><div id="buttons" style="display: table; margin-top: 10px; height: 100%;"><ul style="width: 80%; height: 45%; display: table-cell;"><li style="margin-top: 10%;"><button id="user_history" class="button" style="font-size: 14px; padding: 12px 20px; width: 85%;">User History</button></li><li style="margin-top: 23%;"><button id="invite_others{#ticketNumber}" class="button" style="font-size: 14px; padding: 12px 20px; width: 85%;">Invite Others</button></li><li style="margin-top: 23%;"><button id="resolve_ticket{#ticketNumber}" class="button" style="font-size: 14px; padding: 12px 20px; width: 85%;">Resolve Ticket</button></li></ul></div></div><div id="controls"><textarea class="textField" id="textField{#ticketNumber}" placeholder="Enter text..."></textarea></div></div>';
     var inviteOthersHTML = '<div id="dialogContent"><div id="resultDialog"></div><form><fieldset><p class="validateTips">Invite another staff member to chat</p><label for="username">Staff Username: </label><input type="text" name="username" id="username" class="text ui-widget-content ui-corner-all" size="20" maxlength="15"><br></fieldset></form></div>';
     var accountSettingsHTML = '<div id="dialogContent"><div id="resultDialog"></div><form><fieldset><p class="validateTips">Please enter your info.</p><label for="pwd">Password: </label><input type="password" name="pwd" id="pwd" class="text ui-widget-content ui-corner-all" size="25" maxlength="20"><br><label for="color">Color: </label><br><input type="text" name="color" id="color" class="text ui-widget-content ui-corner-all" size="25" maxlength="7"></br></fieldset></form></div>';
 });

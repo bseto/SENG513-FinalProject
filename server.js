@@ -67,15 +67,11 @@ io.sockets.on('connect', function (socket) {
 io.on('connection', function (socket) {
     socket.on('message', function (data) {
         console.log("Message received: '" + data.message.slice(0, -1) + "' from: " + data.username+ "(" + data.color + ")");
-        if (data.message.startsWith('/')) {
-            handleServerCommand(socket, data.message.slice(0, -1));
-        } else {
-            let room = data.room;
-            updateHistory( room, data );
-            data.timestamp = getTimestamp();
-            console.log("Broadcasting message: in " + room + ": " + data.message.slice(0, -1));
-            io.in( room ).emit('message', data);
-        }
+        let room = data.room;
+        updateHistory( room, data );
+        data.timestamp = getTimestamp();
+        console.log("Broadcasting message: in " + room + ": " + data.message.slice(0, -1));
+        io.in( room ).emit('message', data);
     });
 
     socket.on('disconnect', function () {
@@ -94,6 +90,7 @@ io.on('connection', function (socket) {
         console.log("User disconnected: " + userinfo.username);
 
         socket.to( userinfo.room ).emit('serverMessage', {
+            room: userinfo.room,
             timestamp: time,
             message: '<i>' + userinfo.username + '</i> has left the room.'
         });
@@ -115,22 +112,16 @@ io.on('connection', function (socket) {
 
         ticketCounter++;
 
-        let ticket = {
-            created: new Date(),
-            room: user.userId,
-            ticketNo: ticketCounter,
-            title: data.title,
-            description: data.description
-        };
+        let newTicket = new ticket( new Date(), user.userId, ticketCounter, data.title, data.description );
 
-        ticketQueue.set(ticket.ticketNo, ticket);
+        ticketQueue.set(newTicket.ticketNo, newTicket);
 
         io.sockets.emit('queueUpdate', {
             mode: 'add',
             ticket: {
-                ticketNo: ticket.ticketNo,
-                title: ticket.title,
-                created: ticket.created
+                ticketNo: newTicket.ticketNo,
+                title: newTicket.title,
+                created: newTicket.created
             }
         });
     });
@@ -145,16 +136,21 @@ io.on('connection', function (socket) {
             return;
         }
 
-        socket.join(ticket.room);
+        let user = map_socketIdToUsers.get(socket.id);
+        if ( !user ) {
+            console.log("Unknown user attempted to retrieve ticket...?");
+            return;
+        }
 
         socket.emit('ticketRetrieved', ticket);
-
         ticketQueue.delete(data.ticketNo);
 
         io.sockets.emit('queueUpdate', {
             mode: 'remove',
             ticketNo: data.ticketNo
         });
+
+        joinRoom( socket, ticket.room, user.username );
     });
 
     socket.on('updateAccountSettings', function(data) {
@@ -195,29 +191,7 @@ io.on('connection', function (socket) {
 
         let room = data.userid;
 
-        socket.join( room );
-
-        let time = getTimestamp();
-
-        socket.to(room).emit('serverMessage', {
-            timestamp: time,
-            message: '<i>' + data.username + '</i> has joined the room.'
-        });
-        
-        updateHistory( room, {
-            timestamp: time,
-            message: '<i>' + data.username + '</i> has joined the room.',
-            serverMessage: true
-        });
-
-        socket.emit('serverMessage', {
-            timestamp: time,
-            message: 'Welcome, ' + data.username + ".",
-            username: data.username,
-            room: room,
-            chatHistory: chatHistory.get(room),
-            queue: getTicketQueue()
-        });
+        joinRoom( socket, room, data.username );
     });
 
     socket.on('leaveChatroom', function(data) {
@@ -310,7 +284,15 @@ userInfo = function( userid, username, socketId, color, type ) {
     this.socketId = socketId;
     this.color = color;
     this.type = type;
-}
+};
+
+ticket = function( created, room, ticketNo, title, description ) {
+    this.created = created;
+    this.room = room;
+    this.ticketNo = ticketNo;
+    this.title = title;
+    this.description = description;
+};
 
 getTimestamp = function () {
     let date = new Date();
@@ -346,193 +328,32 @@ generateUsername = function () {
     return text;
 };
 
-handleServerCommand = function (socket, message) {
-    console.log("Handling server command: " + message);
-    let tokens = message.split(' ');
-    switch (tokens[0].toLowerCase()) {
-    case '/nick':
-        handleChangeNickname(socket, tokens);
-        break;
-    case '/nickcolor':
-        handleChangeNickColor(socket, tokens);
-        break;
-    case '/join':
-        handleChangeNamespace(socket, tokens);
-        break;
-    default:
-        reportServerError(socket, "Bad command: " + message, "What? I didn't understand that command. <br>Currently supported commands: <br>'/nick' <br>'/nickcolor' <br>'/join'");
-    }
-};
+joinRoom = function( socket, room, username ) {
+    socket.join( room );
 
-handleChangeNickname = function (socket, tokens) {
-    // Check for new usernname
-    if (tokens.length < 2) {
-        reportServerError( socket, "Bad nickname change request - no name", "You didn't supply a new username!" );
-        return;
-    }
+    let time = getTimestamp();
 
-    // Check for valid characters
-    if (/[\W]/.test(tokens[1].slice(0, -1)) || tokens[1].trim().length === 0) {
-        reportServerError( socket, "Bad nickname change request - bad characters: " + tokens[1], "Your nickname must contain only alphanumeric characters" );
-        return;
-    } 
+    socket.to(room).emit('serverMessage', {
+        room: room,
+        timestamp: time,
+        message: '<i>' + username + '</i> has joined the room.'
+    });
     
-    // Get userInfo from socket-users map
-    let userinfo = map_socketIdToUsers.get(socket.id);
-    if ( !userinfo ) {
-        reportServerError( socket, "Bad nickname change request - couldn't retrieve user " + userInfo.username, "Couldn't retrieve your user info!" );
-        return;
-    }
-
-    let oldName = userinfo.username;
-
-    // Check for unqiue name in current namespace
-    let newName = tokens[1].match(/\w+/)[0];
-    for (let user of map_namespaceToUserList.get(userinfo.namespace)) {
-        if ( user.username.toUpperCase() === newName.toUpperCase() ) {
-            reportServerError( socket, "Bad nickname change request - duplicate name" + newName, "Your nickname must be unique!");
-            return;
-        }
-    }
-
-    // Update userInfo
-    userinfo.username = newName;
-
-    socket.emit('serverMessage', {
-        timestamp: getTimestamp(),
-        username: userinfo.username,
-        message: "Successfully changed nickname to " + userinfo.username,
-        userList: map_namespaceToUserList.get(userinfo.namespace)
-    });
-
-    socket.to(userinfo.namespace).emit('serverMessage', {
-        timestamp: getTimestamp(),
-        message: '<i>' + oldName + '</i> is now known as <i>' + userinfo.username + '</i>',
-        userList: map_namespaceToUserList.get(userinfo.namespace)
-    });
-
-    console.log("Setting nickname for " + oldName + " to " + userinfo.username);
-};
-
-/*
-handleChangeNamespace = function (socket, tokens) {
-    // Check for new room name
-    if (tokens.length < 2) {
-        reportServerError(socket, "Bad chatroom change request - no room", "You didn't supply a Chatroom Name!");
-        return;
-    } 
-
-    // Check for valid characters
-    if (/[\W]/.test(tokens[1].slice(0, -1)) || tokens[1].trim().length === 0) {
-        reportServerError(socket, "Bad chatroom change request - bad characters: " + tokens[1], "Your chatroom must contain only alphanumeric characters");
-        return;
-    } 
-    
-    // Get userInfo from socket-user map
-    let userinfo = map_socketIdToUsers.get(socket.id);
-    let oldNamespace = userinfo.namespace;
-    let newNamespace = tokens[1].match(/\w+/)[0];
-
-    // Check for valid room
-    if ( oldNamespace.toUpperCase() === newNamespace.toUpperCase() ) {
-        reportServerError(socket, "Bad chatroom change request - duplicate room: " + newNamespace, "You are already in that room!");
-        return;
-    }
-
-    // Get userInfo from userlists map
-    let userinfo2 = findUserInUserList( userinfo.namespace, userinfo.socketId );
-    if ( !userinfo || !userinfo2 ) {
-        if ( !userinfo )
-            reportServerError(socket, "Bad namespace change request - couldn't retrieve user " + userinfo.username + " from socket-user map", "Couldn't retrieve your user info!");
-        if ( !userinfo2 )
-            reportServerError(socket, "Bad namespace change request - couldn't retrieve user " + userinfo.username + " from userlists map", "Couldn't retrieve your user info!");
-        return;
-    }
-
-    // Update userInfo
-    userinfo.namespace = newNamespace;
-
-    // Leave old namespace
-    socket.leave(oldNamespace);
-    removeFromUserList( oldNamespace, userinfo2 );
-    socket.to(oldNamespace).emit('serverMessage', {
-        timestamp: getTimestamp(),
-        message: '<i>' + userinfo.username + '</i> has left the room.',
-        userList: map_namespaceToUserList.get(oldNamespace)
-    });
-
-    updateHistory( oldNamespace, {
-        timestamp: getTimestamp(),
-        message: '<i>' + userinfo.username + '</i> has left the room.',
+    updateHistory( room, {
+        timestamp: time,
+        message: '<i>' + username + '</i> has joined the room.',
         serverMessage: true
     });
 
-    // Join new namespace
-    socket.join(userinfo.namespace);
-    addToUserList( newNamespace, userinfo );
-
-    let history = chatHistory.get(newNamespace);
-    if ( !history )
-        history = [];
     socket.emit('serverMessage', {
-        timestamp: getTimestamp(),
-        message: "Successfully changed chat room to " + newNamespace,
-        namespace: newNamespace,
-        userList: map_namespaceToUserList.get(newNamespace),
-        chatHistory: history
+        timestamp: time,
+        message: 'Welcome, ' + username + ".",
+        username: username,
+        room: room,
+        newRoom: room,
+        chatHistory: chatHistory.get(room),
+        queue: getTicketQueue()
     });
-
-    socket.to( newNamespace ).emit('serverMessage', {
-        timestamp: getTimestamp(),
-        message: '<i>' + userinfo.username + '</i> has joined the room.',
-        userList: map_namespaceToUserList.get( newNamespace )
-    });
-
-    updateHistory( newNamespace, {
-        timestamp: getTimestamp(),
-        message: '<i>' + userinfo.username + '</i> has joined the room.',
-        serverMessage: true
-    });
-
-    console.log( "Switching rooms: " + userinfo.username + " from " + oldNamespace + " to " + newNamespace );
-};
-*/
-
-handleChangeNickColor = function (socket, tokens) {
-    // Check for new color
-    if (tokens.length < 2) {
-        reportServerError(socket, "Bad nickcolor change request - no color", "You didn't supply a new nickcolor!");
-        return;
-    }
-
-    // Check for valid characters
-    let newColor = tokens[1].match(/(^#[0-9a-fA-F]{6})/g);
-    if (!newColor) {
-        reportServerError(socket, "Bad nickcolor change request - bad characters: " + tokens[1], "That's not a color! Use the form '#FFFFFF' to pick a color!");
-        return;
-    }
-
-    // Get userInfo from socket-user map
-    let userinfo = map_socketIdToUsers.get(socket.id);
-
-    // Update userInfo
-    userinfo.color = newColor[0];
-
-    socket.emit('serverMessage', {
-        timestamp: getTimestamp(),
-        color: userinfo.color,
-        message: "Successfully changed color to <font color=\"" + newColor + "\">" + newColor + "</font>"
-    });
-
-    // Update userlists for all relevant rooms
-    let rooms = Object.keys(socket.rooms).map(key => key); // This is currently using room name; to use namespaces, use 'key => socket.rooms[key]'
-    for ( room of rooms ) {
-        io.in(room).emit('serverMessage', { // This is currently using room name; to use namespaces, use 'io.of'
-            userList: map_namespaceToUserList.get(room)
-        });
-    }
-
-    console.log("Setting color for " + userinfo.username + " to " + newColor);
 };
 
 updateHistory = function( room, data ) {

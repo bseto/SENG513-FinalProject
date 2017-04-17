@@ -312,8 +312,8 @@ $(function () {
             myName = data.username;
             dirty = true;
         }
-        if (data.room) {
-            myRoom = data.room;
+        if (data.newRoom) {
+            myRoom = data.newRoom;
         }
         if (data.chatHistory) {
             clearChatHistory();

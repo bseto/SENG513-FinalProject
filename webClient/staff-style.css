@@ -92,7 +92,7 @@ ul {
 	position: relative;
 }
 
-#messageList {
+.messageList {
 	list-style-position: inside;
 	list-style-type: none; 
 	margin: 0; 
@@ -104,12 +104,12 @@ ul {
 	overflow-y: auto; 
 }
 
-#messageList li { 
+.messageList li { 
 	padding: 5px 10px; 
 	word-wrap: break-word;
 }
 
-#messageList li:nth-child(odd) { 
+.messageList li:nth-child(odd) { 
 	background: #eeeeee; 
 	word-wrap: break-word;
 }
