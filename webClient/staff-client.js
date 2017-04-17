@@ -294,11 +294,9 @@ $(function () {
             }
         });
 
-        $('#messageList' + ticketNo)
-
         $("#tabs").tabs("option", "active", tabIndex); // set most recent as active tab
         tabIndex++; // active tabs tracker
-    }
+    };
 
     modifyAccountSettings = function() {
         if ( $("#pwd").val().trim().length < 6) {
@@ -373,7 +371,7 @@ $(function () {
         }).addClass('ticketButton').on('click', function() {
             selectTicket( ticket.ticketNo );
         } );
-    }
+    };
 
     // resolve ticket button - closes tabs
     resolveTicket = function( ticketNo ) {
@@ -384,6 +382,12 @@ $(function () {
         $("#tabs").tabs( "refresh" );
 
         let ticket = map_ticketNoToTicket.get(ticketNo);
+
+        socket.emit('leaveChatroom', {
+            username: myName,
+            room: ticket.room
+        });
+        
         map_ticketNoToTicket.delete(ticketNo);
         map_roomToTicket.delete(ticket.room);
     };

@@ -11,7 +11,7 @@ app.engine('pug', require('pug').__express);
 app.use(express.static(__dirname + '/webClient'));
 
 var map_socketIdToUsers = new Map();
-var map_namespaceToUserList = new Map();
+var map_socketIdToRooms = new Map();
 var chatHistory = new Map();
 var ticketQueue = new Map();
 
@@ -89,17 +89,23 @@ io.on('connection', function (socket) {
 
         console.log("User disconnected: " + userinfo.username);
 
-        socket.to( userinfo.room ).emit('serverMessage', {
-            room: userinfo.room,
-            timestamp: time,
-            message: '<i>' + userinfo.username + '</i> has left the room.'
-        });
+        let rooms = map_socketIdToRooms.get(socket.id);
+        if ( !rooms )
+            return;
 
-        updateHistory( userinfo.room, {
-            timestamp: time,
-            message: '<i>' + userinfo.username + '</i> has left the room.',
-            serverMessage: true
-        });
+        for ( let room of rooms ) {
+            socket.to( room ).emit('serverMessage', {
+                room: room,
+                timestamp: time,
+                message: '<i>' + userinfo.username + '</i> has left the room.'
+            });
+
+            updateHistory( room, {
+                timestamp: time,
+                message: '<i>' + userinfo.username + '</i> has left the room.',
+                serverMessage: true
+            });
+        }
     });
 
     socket.on('submitTicket', function(data) {
@@ -132,7 +138,7 @@ io.on('connection', function (socket) {
 
         let ticket = ticketQueue.get(data.ticketNo);
         if ( !ticket ) {
-            reportServerError( socket, "Invalid ticket retrieval: " + data.ticketNo, "Invalid ticket number - could not retrieve ticket");
+            console.log("Invalid ticket number - could not retrieve ticket");
             return;
         }
 
@@ -151,6 +157,12 @@ io.on('connection', function (socket) {
         });
 
         joinRoom( socket, ticket.room, user.username );
+
+        io.in( ticket.room ).emit('serverMessage', {
+            room: ticket.room,
+            timestamp: getTimestamp(),
+            message: "Ticket Summary: <br> " + ticket.description
+        });
     });
 
     socket.on('updateAccountSettings', function(data) {
@@ -185,7 +197,7 @@ io.on('connection', function (socket) {
 
         let userinfo = map_socketIdToUsers.get(socket.id);
         if ( !userinfo ) {
-            reportServerError("Error creating chatroom - couldn't retrieve user information.");
+            console.log("Error creating chatroom - couldn't retrieve user information: ");
             return;
         }
 
@@ -202,19 +214,20 @@ io.on('connection', function (socket) {
         }
 
         let time = getTimestamp();
-
-        console.log("User disconnected: " + userinfo.username + " from " + userinfo.room);
-
-        socket.to( userinfo.room ).emit('serverMessage', {
+        socket.to( data.room ).emit('serverMessage', {
+            room: data.room,
             timestamp: time,
             message: '<i>' + userinfo.username + '</i> has left the room.'
         });
 
-        updateHistory( userinfo.room, {
+        updateHistory( data.room, {
             timestamp: time,
             message: '<i>' + userinfo.username + '</i> has left the room.',
             serverMessage: true
         });
+
+        socket.leave(data.room);
+        console.log("User disconnected: " + userinfo.username + " from " + data.room);
     });
 
     socket.on('inviteUser', function(data) {
@@ -311,14 +324,6 @@ getTimestamp = function () {
     return hh + ":" + mm + ":" + ss;
 };
 
-reportServerError = function( socket, consoleMsg, clientMsg ) {
-    console.log(consoleMsg);
-    socket.emit('serverMessage', {
-        timestamp: getTimestamp(),
-        message: clientMsg
-    });
-};
-
 generateUsername = function () {
     let text = "";
 
@@ -329,6 +334,13 @@ generateUsername = function () {
 };
 
 joinRoom = function( socket, room, username ) {
+    let rooms = map_socketIdToRooms.get(socket.id);
+    if ( !rooms ) {
+        map_socketIdToRooms.set(socket.id, [room]);
+    } else {
+        rooms.push(room);
+    }
+
     socket.join( room );
 
     let time = getTimestamp();
@@ -351,8 +363,7 @@ joinRoom = function( socket, room, username ) {
         username: username,
         room: room,
         newRoom: room,
-        chatHistory: chatHistory.get(room),
-        queue: getTicketQueue()
+        chatHistory: chatHistory.get(room)
     });
 };
 

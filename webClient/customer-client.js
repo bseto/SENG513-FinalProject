@@ -185,7 +185,10 @@ $(function () {
                 socket.emit("createChatroom", Cookies.getJSON('profile'));
             },
             close: function() {
-                socket.emit("leaveChatroom", Cookies.getJSON('profile'));
+                socket.emit("leaveChatroom", {
+                    username: myName,
+                    room: myRoom
+                });
                 $( this ).empty();
                 $( this ).dialog('destroy');
             }
