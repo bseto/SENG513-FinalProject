@@ -10,7 +10,7 @@ function login() {
 function register() {
 	var username = document.getElementById("register-username").value;
 	var password = document.getElementById("register-password").value;
-	var type = document.getElementById("register-type").value;
+	var type = document.getElementById("register-type").value.toLowerCase();
 
 	socket.emit('register', {username: username, password: password, type: type});		
 }
@@ -20,9 +20,9 @@ $(function () {
 		let cookie = Cookies.getJSON('profile');
 		if ( cookie ) {
 			if ( cookie.type == "user")
-				window.location.href = "http://localhost:3000/chat";
+				window.location.href = "/chat";
 			if ( cookie.type == "staff" )
-				window.location.href = "http://localhost:3000/staff";
+				window.location.href = "/staff";
 		}
 
 		socket.emit('userConnected', null);
@@ -38,9 +38,9 @@ $(function () {
 			});
 
 			if ( data.Type == "user" )
-    			window.location.href = "http://localhost:3000/chat";
+    			window.location.href = "/chat";
 			if ( data.Type == "staff" )
-				window.location.href = "http://localhost:3000/staff";
+				window.location.href = "/staff";
     	}
     	else {
     		console.log('Login Unsuccessful');

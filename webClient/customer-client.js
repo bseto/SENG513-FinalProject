@@ -10,7 +10,7 @@ $(function () {
         myID = Cookies.getJSON('profile').userid;
         myColor = Cookies.getJSON('profile').color;
     } else {
-        window.location.href = "http://localhost:3000/";
+        window.location.href = "../";
     };
 
     $( "#AccountSettingsBtn" ).button({
@@ -84,7 +84,7 @@ $(function () {
                 "Logout": function() {
                     Cookies.remove('profile');
                     $( this ).dialog('close');
-                    window.location.href = "http://localhost:3000";
+                    window.location.href = "../";
                 },
                 Cancel: function() {
                     $( this ).dialog('close');
