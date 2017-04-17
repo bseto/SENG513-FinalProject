@@ -59,7 +59,6 @@ io.sockets.on('connect', function (socket) {
     });
     socket.on('retrieveTicketQueue', function(data) {
         console.log('Ticket queue request: ' + JSON.stringify(data));
-        console.log(getTicketQueue());
         if ( data.type == "staff" )
             socket.emit('queueRetrieval', getTicketQueue());
     });
@@ -302,48 +301,6 @@ generateUsername = function () {
 
     return text;
 };
-
-/*
-addToUserList = function( namespace, info ) {
-    let list = map_namespaceToUserList.get( namespace );
-
-    if ( list )
-    {
-        list.push(info);
-        list.sort(function(a, b){
-            return a.username < b.username ? -1 : 1;
-        });
-    }
-    else
-    {
-        map_namespaceToUserList.set(info.namespace, [info]);
-    }
-};
-
-removeFromUserList = function( namespace, info ) {
-    let list = map_namespaceToUserList.get( namespace );
-
-    if ( list )
-    {
-        let pos = list.indexOf(info);
-        list.splice(pos, 1);
-
-        list.sort(function(a, b){
-            return a.username < b.username ? -1 : 1;
-        });
-    }
-};
-
-findUserInUserList = function( namespace, socketId ) {
-    let list = map_namespaceToUserList.get( namespace );
-    if ( !list )
-        return undefined;
-    
-    return list.find( function(client){
-            return client.socketId == socketId;
-        });
-};
-*/
 
 handleServerCommand = function (socket, message) {
     console.log("Handling server command: " + message);
@@ -636,6 +593,9 @@ handleSubmitTicket = function( socket, data ) {
 };
 
 handleRetrieveTicket = function( socket, data ) {
+    console.log("Ticket selected by: " + socket.id);
+    console.log(JSON.stringify(data));
+
     let ticket = ticketQueue.get(data.ticketNo);
     if ( !ticket ) {
         reportServerError( socket, "Invalid ticket retrieval: " + data.ticketNo, "Invalid ticket number - could not retrieve ticket");
