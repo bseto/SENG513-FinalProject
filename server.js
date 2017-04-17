@@ -202,10 +202,62 @@ io.on('connection', function (socket) {
 
     socket.on('inviteUser', function(data) {
         console.log("Inviting other user: " + JSON.stringify(data));
+
+        let sender = map_socketIdToUsers.get(socket.id)
+
+        if ( sender.username == data ) {    // What a troll
+            socket.emit('inviteUser-response', false);
+            return;
+        }
+
+        for ( let [usersocket, userinfo] of map_socketIdToUsers ) {
+            if ( !userinfo || userinfo.type != "staff" )
+                continue;
+
+            if ( userinfo.username == data ) {
+                socket.to(usersocket).emit('chatroomInvitation', sender.username);
+                socket.emit('inviteUser-response', true);
+                return;
+            }
+        }
+
+        socket.emit('inviteUser-response', false);
     });
 
     socket.on('joinChatroom', function(data) {
         console.log("Join chatroom: " + JSON.stringify(data));
+
+        let recipient = map_socketIdToUsers.get(socket.id);
+
+        if ( !recipient ) {
+            console.log("Unknown user tried to join chatroom...?");
+            return;
+        }
+
+        let sender = '';
+        for ( let user of map_socketIdToUsers.values()) {
+            if ( user.username == data.sender ){
+                sender = user;
+            }
+        }
+
+        if ( !sender ) {
+            console.log("Couldn't find sender for chatroom invite.");
+            return;
+        }
+
+        if ( data.response ) {
+            //This needs to actually connect the chatroom...
+            /*socket.to(sender.socketId).emit('joinChatroom-response', {
+                response: true
+            });*/
+        } else {
+            socket.to(sender.socketId).emit('joinChatroom-response', {
+                response: false,
+                sender: recipient.username
+            });
+        }
+
     });
 });
 
