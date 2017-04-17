@@ -195,24 +195,6 @@ $(function () {
     };
 
     modifyAccountSettings = function() {
-        if ( $("#username").val().trim().length < 3) {
-            $("#username").addClass( "ui-state-error" );
-            $(".validateTips").text("Your display name must be at least 3 characters.").addClass( "ui-state-highlight" );
-            setTimeout(function() {
-                $(".validateTips").removeClass( "ui-state-highlight", 1500 );
-            }, 250 );
-            return false;            
-        }
-
-        if( /[\W]/.test($("#username").val().slice(0, -1)) ) {
-            $("#username").addClass( "ui-state-error" );
-            $(".validateTips").text("Your username must contain only alphanumeric characters.").addClass( "ui-state-highlight" );
-            setTimeout(function() {
-                $(".validateTips").removeClass( "ui-state-highlight", 1500 );
-            }, 250 );
-            return false;
-        }
-
         if ( $("#pwd").val().trim().length < 6) {
             $("#pwd").addClass( "ui-state-error" );
             $(".validateTips").text("Your password must be at least 6 characters.").addClass( "ui-state-highlight" );
@@ -234,7 +216,7 @@ $(function () {
 
         socket.emit('updateAccountSettings', {
             userid: myID,
-            username: $("#username").val(),
+            username: myName,
             type: Cookies.getJSON('profile').type,
             pwd: $("#pwd").val(),
             color: newColor[0]
@@ -364,7 +346,7 @@ $(function () {
         }
     };
 
-    var accountSettingsHTML = '<div id="dialogContent"><div id="resultDialog"></div><form><fieldset><p class="validateTips">Please enter your info.</p><label for="username">Display Name: </label><input type="text" name="username" id="username" class="text ui-widget-content ui-corner-all" size="20" maxlength="15"><br><label for="pwd">Password: </label><input type="password" name="pwd" id="pwd" class="text ui-widget-content ui-corner-all" size="25" maxlength="20"><br><label for="color">Color: </label><br><input type="text" name="color" id="color" class="text ui-widget-content ui-corner-all" size="25" maxlength="7"></br></fieldset></form></div>';
+    var accountSettingsHTML = '<div id="dialogContent"><div id="resultDialog"></div><form><fieldset><p class="validateTips">Please enter your info.</p><label for="pwd">Password: </label><input type="password" name="pwd" id="pwd" class="text ui-widget-content ui-corner-all" size="25" maxlength="20"><br><label for="color">Color: </label><br><input type="text" name="color" id="color" class="text ui-widget-content ui-corner-all" size="25" maxlength="7"></br></fieldset></form></div>';
 
     var createTicketHTML = '<div id="dialogContent"><div id="confirmDialog" title="Confirm"></div><p class="validateTips">You must at least provide a title.</p><form><fieldset><label for="ticketName">Title: </label><input type="text" name="ticketName" id="ticketName" placeholder="A descriptive title..." class="text ui-widget-content ui-corner-all" size="25" maxlength="40"><br><label for="description">Description: </label><br><textarea name="description" id="description" placeholder="Please be concise and clear" cols="35" rows="10" maxlength="600" class="ui-widget-content ui-corner-all"/></fieldset></form></div>';
 
