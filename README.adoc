@@ -1,5 +1,8 @@
 = SENG513_Assign3
 
+NOTE: This guide assumes you are using a Debian based linux distribution.
+If you are using a different distribution, use the appropriate package manager for that distribution.
+
 == Getting Started
 
 . In root directory:
@@ -26,4 +29,28 @@ mkdir dbstorage
 
 mongod --dbpath=./dbstorage --port 27017
 ```
+
+== Windows Users:
+
+To run the project on Windows
+
+. Navigate to Virtualbox.org and download VirtualBox
++
+https://www.virtualbox.org/wiki/Downloads
++
+. Double click the installer and follow prompts to install VirtualBox.
++
+. Navigate to Ubuntu (or your favorite linux flavour's) website and download the .iso
++
+https://www.ubuntu.com/download/desktop
++
+. Follow instructions on how to run Ubuntu on VirtualBox
++
+http://www.psychocats.net/ubuntu/virtualbox
+
+Additionally, you can also run node on Windows.
+
+. Follow these instructions
++
+http://blog.teamtreehouse.com/install-node-js-npm-windows
 
