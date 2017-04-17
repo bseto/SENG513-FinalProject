@@ -162,6 +162,39 @@ $(function () {
         handleServerMessage(data);
     });
 
+    socket.on('requestInviteResponse', function( data ) {
+        if ( !data )
+            return;
+
+        if ( data.staffName != myName )
+            return;
+
+        if ( data.response ) {
+            socket.emit('inviteUser', data);
+        } else {
+            $("#invitationPane").empty();
+            $("#invitationPane").append('<p>' + data.customer + ' has declined to allow other members to join</p>');
+
+            $("#invitationPane").dialog({
+                title: "Request Denied",
+                resizeable: false,
+                modal: true,
+                buttons: {
+                    OK: function() {
+                        $( this ).dialog('close');
+                        $( '#dialogInvite' ).dialog('close');
+                    }
+                },
+                close: function() {
+                    $( this ).empty();
+                    $( this ).dialog('destroy');
+                }
+            });
+
+            $( "#invitationPane" ).dialog('open');
+        }
+    });
+
     socket.on('inviteUser-response', function(data) {
         let title = '';
         let okfunc = '';
@@ -198,30 +231,19 @@ $(function () {
         $( "#dialogPane" ).dialog('open');
     });
 
-    socket.on('chatroomInvitation', function(data) {
+    socket.on('requestInviteDeclined', function(data){
         if ( !data )
             return;
 
         $("#invitationPane").empty();
-        $("#invitationPane").append('<p>You have been invited by ' + data + ' to join their chatroom</p>');
+        $("#invitationPane").append('<p>' + data.sender + 'has declined to join your chatroom</p>');
 
         $("#invitationPane").dialog({
-            title: "Invitation Received",
+            title: "Invitation Declined",
             resizeable: false,
             modal: true,
             buttons: {
-                Join: function() {
-                    socket.emit('joinChatroom', {
-                        response: true,
-                        sender: data
-                    } );
-                    $( this ).dialog('close');
-                },
-                Cancel: function() {
-                    socket.emit('joinChatroom', {
-                        response: false,
-                        sender: data
-                    } );
+                OK: function() {
                     $( this ).dialog('close');
                 }
             },
@@ -234,32 +256,45 @@ $(function () {
         $( "#invitationPane" ).dialog('open');
     });
 
-    socket.on('joinChatroom-response', function(data){
+    socket.on('chatroomInvitation', function(data) {
         if ( !data )
             return;
 
-        if ( !data.response ) {
-            $("#invitationPane").empty();
-            $("#invitationPane").append('<p>' + data.sender + 'has declined to join your chatroom</p>');
+        $("#invitationPane").empty();
+        $("#invitationPane").append('<p>You have been invited by ' + data.staffName + ' to join their chatroom</p>');
 
-            $("#invitationPane").dialog({
-                title: "Invitation Declined",
-                resizeable: false,
-                modal: true,
-                buttons: {
-                    OK: function() {
-                        $( this ).dialog('close');
+        let join = '';
+        $("#invitationPane").dialog({
+            title: "Invitation Received",
+            resizeable: false,
+            modal: true,
+            buttons: {
+                Join: function() {
+                    if ( buildTab( data.ticket.ticketNo ) ) {
+                        join = true;
+                        map_ticketNoToTicket.set( data.ticket.ticketNo, data.ticket );
+                        map_roomToTicket.set(data.ticket.room, data.ticket);
                     }
+                    $( this ).dialog('close');
                 },
-                close: function() {
-                    $( this ).empty();
-                    $( this ).dialog('destroy');
+                Decline: function() {
+                    join = false;
+                    $( this ).dialog('close');
                 }
-            });
+            },
+            close: function() {               
+                socket.emit('joinChatroom', {
+                    response: join,
+                    room: data.room,
+                    requestedUser: myName
+                });
+                $( this ).empty();
+                $( this ).dialog('destroy');
+            }
+        });
 
-            $( "#invitationPane" ).dialog('open');
-        }
-    });
+        $( "#invitationPane" ).dialog('open');
+    });    
 
     // adding tabs functionality
     selectTicket = function( ticketNo ) {
@@ -273,6 +308,17 @@ $(function () {
         socket.emit('retrieveTicket', {
             ticketNo: ticketNo
         });
+
+        buildTab( ticketNo );
+    };
+
+    buildTab = function( ticketNo ) {
+        if (tabIndex >= 5){
+            $( function() {
+                $( "#dialogTabs" ).dialog({modal: true});
+            } );
+            return false;
+        }
 
         let label = "TicketNo " + ticketNo;
         let id = "ticketTabChat" + ticketNo;
@@ -296,7 +342,9 @@ $(function () {
 
         $("#tabs").tabs("option", "active", tabIndex); // set most recent as active tab
         tabIndex++; // active tabs tracker
-    };
+
+        return true;
+    }
 
     modifyAccountSettings = function() {
         if ( $("#pwd").val().trim().length < 6) {
@@ -394,13 +442,22 @@ $(function () {
 
     // invite others button
     inviteOthers = function( ticketNo ) {
+        let ticket = map_ticketNoToTicket.get(ticketNo);
+        if ( !ticket )  // Really not sure how this could happen...
+            return;
+
         $( "#dialogInvite" ).append(inviteOthersHTML);
         $( "#dialogInvite" ).dialog({
             modal: true,
             title: "Search For Support User",
             buttons: {
                 OK: function () {
-                    socket.emit('inviteUser', $('#username').val().trim() );
+                    socket.emit( 'requestInvite', {
+                        staffName: myName,
+                        requestedUser: $('#username').val().trim(),
+                        room: ticket.room,
+                        ticket: ticket
+                    });
                 },
                 Cancel: function() {
                     $( this ).dialog('close');

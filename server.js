@@ -118,7 +118,7 @@ io.on('connection', function (socket) {
 
         ticketCounter++;
 
-        let newTicket = new ticket( new Date(), user.userId, ticketCounter, data.title, data.description );
+        let newTicket = new ticket( new Date(), user.userId, user.socketId, ticketCounter, data.title, data.description );
 
         ticketQueue.set(newTicket.ticketNo, newTicket);
 
@@ -234,18 +234,15 @@ io.on('connection', function (socket) {
         console.log("Inviting other user: " + JSON.stringify(data));
 
         let sender = map_socketIdToUsers.get(socket.id)
-
-        if ( sender.username == data ) {    // What a troll
-            socket.emit('inviteUser-response', false);
+        if ( !sender )
             return;
-        }
 
         for ( let [usersocket, userinfo] of map_socketIdToUsers ) {
             if ( !userinfo || userinfo.type != "staff" )
                 continue;
 
-            if ( userinfo.username == data ) {
-                socket.to(usersocket).emit('chatroomInvitation', sender.username);
+            if ( userinfo.username == data.requestedUser ) {
+                socket.to(usersocket).emit('chatroomInvitation', data);
                 socket.emit('inviteUser-response', true);
                 return;
             }
@@ -254,37 +251,33 @@ io.on('connection', function (socket) {
         socket.emit('inviteUser-response', false);
     });
 
+    socket.on('requestInvite', function(data) {
+        let sender = map_socketIdToUsers.get(socket.id)
+        if ( !sender || !data )
+            return;
+
+        if ( sender.username == data.requestedUser ) {    // What a troll
+            socket.emit('inviteUser-response', false);
+            return;
+        }
+
+        socket.to( data.room ).emit( 'requestInvite', data );
+    });
+
+    socket.on('requestInviteResponse', function(data) {
+        socket.to( data.room ).emit( 'requestInviteResponse', data );
+    });
+
     socket.on('joinChatroom', function(data) {
-        console.log("Join chatroom: " + JSON.stringify(data));
-
-        let recipient = map_socketIdToUsers.get(socket.id);
-
-        if ( !recipient ) {
-            console.log("Unknown user tried to join chatroom...?");
+        if ( !data )
             return;
-        }
-
-        let sender = '';
-        for ( let user of map_socketIdToUsers.values()) {
-            if ( user.username == data.sender ){
-                sender = user;
-            }
-        }
-
-        if ( !sender ) {
-            console.log("Couldn't find sender for chatroom invite.");
-            return;
-        }
 
         if ( data.response ) {
-            //This needs to actually connect the chatroom...
-            /*socket.to(sender.socketId).emit('joinChatroom-response', {
-                response: true
-            });*/
+            joinRoom( socket, data.room, data.requestedUser );
         } else {
-            socket.to(sender.socketId).emit('joinChatroom-response', {
+            socket.to(data.room).emit('requestInviteDeclined', {
                 response: false,
-                sender: recipient.username
+                sender: data.requestedUser
             });
         }
 
@@ -299,9 +292,10 @@ userInfo = function( userid, username, socketId, color, type ) {
     this.type = type;
 };
 
-ticket = function( created, room, ticketNo, title, description ) {
+ticket = function( created, room, socketId, ticketNo, title, description ) {
     this.created = created;
     this.room = room;
+    this.socketId = socketId;
     this.ticketNo = ticketNo;
     this.title = title;
     this.description = description;

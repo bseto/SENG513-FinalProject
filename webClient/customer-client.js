@@ -16,6 +16,7 @@ $(function () {
     $( "#AccountSettingsBtn" ).button({
         label: "Account Settings"
     }).on("click", function() {
+        $("#dialogPane").empty();
         $("#dialogPane").append(accountSettingsHTML);
 
         $("#username").attr('placeholder', myName);
@@ -262,19 +263,61 @@ $(function () {
         }
 
         $("#resultDialog").dialog({
-                title: title,
-                resizeable: false,
-                height: "auto",
-                modal: true,
-                buttons: {
-                    Ok: okfunc
-                },
-                close: function(){
-                    $( this ).empty();
-                    $( this ).dialog('destroy');
-                }
-            });
+            title: title,
+            resizeable: false,
+            height: "auto",
+            modal: true,
+            buttons: {
+                Ok: okfunc
+            },
+            close: function(){
+                $( this ).empty();
+                $( this ).dialog('destroy');
+            }
+        });
     });
+
+    socket.on('requestInvite', function(data) {
+        $("#invitePane").empty();
+        $("#invitePane").append('<p>' + data.staffName + ' wants to invite another staff member to the room.</p><br><p>Do you accept?</p>');
+
+        $("#invitePane").dialog({
+            title: "Invite Request",
+            resizeable: false,
+            height: "auto",
+            modal: true,
+            buttons: {
+                Accept: function () {
+                    socket.emit( 'requestInviteResponse', {
+                        room: data.room,
+                        staffName: data.staffName,
+                        customer: myName,
+                        response: true,
+                        requestedUser: data.requestedUser,
+                        ticket: data.ticket
+                    });
+                    $( this ).dialog('close');
+                },
+                Decline: function() {
+                    socket.emit( 'requestInviteResponse', {
+                        room: data.room,
+                        staffName: data.staffName,
+                        customer: myName,
+                        response: false,
+                        requestedUser: data.requestedUser,
+                        ticket: data.ticket
+                    } );
+                    $( this ).dialog('close');
+                }
+            },
+            close: function() {
+                $( this ).empty();
+                $( this ).dialog('destroy');
+            }
+        });
+
+        $( "#invitePane" ).dialog('open');
+    })
 
     buildMessageString = function (data) {
         let string = '';
@@ -353,6 +396,6 @@ $(function () {
 
     var createTicketHTML = '<div id="dialogContent"><div id="confirmDialog" title="Confirm"></div><p class="validateTips">You must at least provide a title.</p><form><fieldset><label for="ticketName">Title: </label><input type="text" name="ticketName" id="ticketName" placeholder="A descriptive title..." class="text ui-widget-content ui-corner-all" size="25" maxlength="40"><br><label for="description">Description: </label><br><textarea name="description" id="description" placeholder="Please be concise and clear" cols="35" rows="10" maxlength="600" class="ui-widget-content ui-corner-all"/></fieldset></form></div>';
 
-    var chatHTML = '<div id="dialogContent" style="height: 100%"><div id="chat-content"><div id="messageArea"><ul id="messageList"></ul></div><div id="chat-controls"><textarea id="textField" placeholder="Enter text..."/></div></div></div>';
+    var chatHTML = '<div id="invitePane"></div><div id="dialogContent" style="height: 100%"><div id="chat-content"><div id="messageArea"><ul id="messageList"></ul></div><div id="chat-controls"><textarea id="textField" placeholder="Enter text..."/></div></div></div>';
 
 });
