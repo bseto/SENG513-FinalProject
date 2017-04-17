@@ -49,7 +49,7 @@ $(function () {
         newTab();
     });
     
-    // button handling
+    // button handling    
     // resolve ticket button
     $("#tabs").button().on('click', '#resolve_ticket', function() {
         var panelId = $('span.ui-icon.ui-icon-close').closest("li").remove().attr( "aria-controls" );
@@ -62,14 +62,60 @@ $(function () {
     
     // invite others button
     $("#tabs").button().on('click', '#invite_others', function() {
-         $( "#dialog" ).dialog({modal: true, title: "Search For Support User", 
+        $( "#dialogInvite" ).append(inviteOthersHTML);
+        $( "#dialogInvite" ).dialog({modal: true, title: "Search For Support User", 
                                 buttons: {
                                     'OK': function () {
                                         var name = $('input[name="name"]').val();
-                                        $(this).dialog("close");
+                                        $(this).dialog('close');
+                                    }
+                                }, height: 300, width: 360,
+                                close: function() {
+                                    $( this ).empty();
+                                    $( this ).dialog('destroy');
+                                }});
+    });
+    
+    // view user's chat history (placeholder - not yet implemented)
+    $("#tabs").button().on('click', '#user_history', function() {
+        $( "#dialogUserHistory" ).dialog({modal: true, title: "User's Chat History", 
+                                buttons: {
+                                    'OK': function () {
+                                        $(this).dialog('close');
                                     }
                                 }});
     });
+    
+    // account settings
+    $("#account_settings").button().on('click', function() {
+        $("#dialogPane").append(accountSettingsHTML);
+
+        $("#username").attr('placeholder', "new nickname");
+        $("#pwd").attr('placeholder', "********");
+        $("#color").attr('placeholder', "#ffffff");
+
+        $("#dialogPane").dialog({
+            title: "Account Settings",
+            autoOpen: false,
+            height: 360,
+            width: 360,
+            modal: true,
+            buttons: {
+                "Confirm Changes": modifyAccountSettings,
+                Cancel: function() {
+                    $( this ).dialog('close');
+                }
+            },
+            close: function() {
+                $( this ).empty();
+                $( this ).dialog('destroy');
+            }
+        });
+
+        $( "#dialogPane" ).dialog('open');
+    });
+    
+    // logout
     
 // ---------------------------------------------------------------------------------------- //
     if ( Cookies.getJSON('profile') ) {
@@ -190,3 +236,52 @@ $(function () {
             });
 	  };
 });
+
+var inviteOthersHTML = '<div id="dialogContent"><div id="resultDialog"></div><form><fieldset><p class="validateTips">Invite another staff member to chat</p><label for="username">Staff Username: </label><input type="text" name="username" id="username" class="text ui-widget-content ui-corner-all" size="20" maxlength="15"><br></fieldset></form></div>';
+var accountSettingsHTML = '<div id="dialogContent"><div id="resultDialog"></div><form><fieldset><p class="validateTips">Please enter your info.</p><label for="username">Display Name: </label><input type="text" name="username" id="username" class="text ui-widget-content ui-corner-all" size="20" maxlength="15"><br><label for="pwd">Password: </label><input type="password" name="pwd" id="pwd" class="text ui-widget-content ui-corner-all" size="25" maxlength="20"><br><label for="color">Color: </label><br><input type="text" name="color" id="color" class="text ui-widget-content ui-corner-all" size="25" maxlength="7"></br></fieldset></form></div>';
+
+modifyAccountSettings = function() {
+        if ( $("#username").val().trim().length < 3) {
+            $("#username").addClass( "ui-state-error" );
+            $(".validateTips").text("Your display name must be at least 3 characters.").addClass( "ui-state-highlight" );
+            setTimeout(function() {
+                $(".validateTips").removeClass( "ui-state-highlight", 1500 );
+            }, 250 );
+            return false;            
+        }
+
+        if( /[\W]/.test($("#username").val().slice(0, -1)) ) {
+            $("#username").addClass( "ui-state-error" );
+            $(".validateTips").text("Your username must contain only alphanumeric characters.").addClass( "ui-state-highlight" );
+            setTimeout(function() {
+                $(".validateTips").removeClass( "ui-state-highlight", 1500 );
+            }, 250 );
+            return false;
+        }
+
+        if ( $("#pwd").val().trim().length < 6) {
+            $("#pwd").addClass( "ui-state-error" );
+            $(".validateTips").text("Your password must be at least 6 characters.").addClass( "ui-state-highlight" );
+            setTimeout(function() {
+                $(".validateTips").removeClass( "ui-state-highlight", 1500 );
+            }, 250 );
+            return false;            
+        }
+
+        let newColor = $("#color").val().match(/(^#[0-9a-fA-F]{6})/g);
+        if ( !newColor ) {
+            $("#color").addClass( "ui-state-error" );
+            $(".validateTips").text("Your color selection must be in the form #FFFFFF").addClass( "ui-state-highlight" );
+            setTimeout(function() {
+                $(".validateTips").removeClass( "ui-state-highlight", 1500 );
+            }, 250 );
+            return false;   
+        }
+
+        socket.emit('updateAccountSettings', {
+            userid: myID,
+            username: $("#username").val(),
+            pwd: $("#pwd").val(),
+            color: newColor
+        });
+    };
